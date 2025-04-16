@@ -973,472 +973,251 @@ async function initializeServer() {
       ws.send(JSON.stringify({ type: 'request_nickname' }));
       
       ws.on('message', (data) => {
-        let parsed;
         try {
-          parsed = JSON.parse(data);
-        } catch (e) {
-          console.error('JSON 파싱 오류:', e);
-          return;
-        }
-        
-        // 상점 아이템 정보 요청
-        if (parsed.type === 'request' && parsed.requestType === 'shopItems') {
-          const rodItems = [];
-          for (const [rodName, rodInfo] of Object.entries(rodData)) {
-            if (rodName === "맨손") continue; // 맨손은 상점에서 판매하지 않음
-            
-            rodItems.push({
-              name: rodName,
-              price: rodInfo.price,
-              fishingSkill: rodInfo.fishingSkill,
-              requires: rodInfo.requires
-            });
-          }
-          
-          const accessoryItems = [];
-          for (const [accName, accInfo] of Object.entries(accessoryData)) {
-            if (accName === "없음") continue; // '없음'은 상점에서 판매하지 않음
-            
-            accessoryItems.push({
-              name: accName,
-              price: accInfo.price,
-              cooldownReduction: accInfo.cooldownReduction,
-              sellBonus: accInfo.sellBonus,
-              requires: accInfo.requires
-            });
-          }
-          
-          ws.send(JSON.stringify({
-            type: 'shopItems',
-            rods: rodItems,
-            accessories: accessoryItems
-          }));
-          return;
-        }
-        
-        // 사용자 정보 요청 (닉네임 클릭 시)
-        if (parsed.type === 'requestUserInfo') {
-          const targetUserId = parsed.targetUserId;
-          const info = {
-            type: 'userInfo',
-            userId: targetUserId,
-            inventory: inventories.get(targetUserId) || {},
-            gold: userGold.get(targetUserId) || 0
-          };
-          ws.send(JSON.stringify(info));
-          return;
-        }
-
-        // join 메시지 처리
-        if (parsed.type === 'join') {
-          const nickname = parsed.nickname;
-          const room = parsed.room;
-          const uuid = parsed.uuid; // 로그인 후 받은 UUID
-          const userId = uuid || ip; // UUID가 없으면 IP 사용 (비로그인 사용자)
-          
-          // 동일 ID와 동일 닉네임으로 이미 접속 중인 기존 연결이 있으면 종료
-          for (const [client, info] of clients.entries()) {
-            if (info.userId === userId && info.nickname === nickname && client !== ws) {
-              client.send(JSON.stringify({ text: `⚠️ 다른 위치에서 ${nickname}으로 접속되어 연결이 종료됩니다.` }));
-              clients.delete(client);
-              client.terminate();
-            }
-          }
-
-          // 새 연결 등록 (기존 데이터는 유지)
-          clients.set(ws, { userId, nickname, room });
-          if (!inventories.has(userId)) {
-            inventories.set(userId, {});
-            saveDatabase();
-          }
-          if (!userGold.has(userId)) {
-            userGold.set(userId, 0);
-            saveDatabase();
-          }
-
-          // 모든 참여자 목록 생성
-          const allUsers = [];
-          for (const [, info] of clients) {
-            if (info.room === room) {
-              allUsers.push({ userId: info.userId, nickname: info.nickname });
-            }
-          }
-          
-          // 새 사용자에게 전체 사용자 목록 전송
-          ws.send(JSON.stringify({ 
-            type: 'full_user_list', 
-            users: allUsers 
-          }));
-
-          // join 메시지에 userId 포함하여 브로드캐스트
-          const joinMsg = {
-            type: 'join',
-            text: `[${getTime()}] 💬 ${nickname}님이 입장했습니다.`,
-            userId,
-            nickname
-          };
-          broadcast(room, joinMsg);
-          
-          // 모든 참여자에게 최신 참여자 목록 전송하기
-          broadcast(room, { 
-            type: 'full_user_list', 
-            users: allUsers 
-          });
-          
-          return;
-        }
-
-        if (parsed.type === 'buy') {
+          const parsed = JSON.parse(data);
           const info = clients.get(ws);
-          if (!info) return;
-          const { userId, nickname, room } = info;
-          const { item, price } = parsed;
-          const time = getTime();
           
-          // 사용자의 골드 확인
-          let gold = userGold.get(userId) || 0;
-          
-          if (gold < price) {
-            // 골드가 부족한 경우
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: `[${time}] ⚠️ 골드가 부족합니다. 필요: ${formatPrice(price)}골드, 보유: ${formatPrice(gold)}골드`
-            }));
+          // 1. 상점 아이템 정보 요청
+          if (parsed.type === 'request' && parsed.requestType === 'shopItems') {
+            handleShopItemsRequest(ws);
             return;
           }
           
-          // 낚시대 구매
-          if (item.startsWith('구매 ')) {
-            const itemName = item.substring(3);
+          // 2. 사용자 정보 요청
+          if (parsed.type === 'requestUserInfo') {
+            const targetUserId = parsed.targetUserId;
+            handleUserInfoRequest(ws, targetUserId);
+            return;
+          }
+          
+          // 3. 채팅방 입장
+          if (parsed.type === 'join') {
+            const nickname = parsed.nickname;
+            const room = parsed.room;
+            const uuid = parsed.uuid;
+            handleJoin(ws, nickname, room, uuid, ip);
+            return;
+          }
+          
+          // 4. 아이템 구매
+          if (parsed.type === 'buy') {
+            if (!info) return;
+            handleBuyItem(ws, info, parsed);
+            return;
+          }
+          
+          // 5. 일반 메시지
+          if (parsed.type === 'message') {
+            if (!info) return;
+            const { userId, nickname, room } = info;
+            const { text } = parsed;
+            const time = getTime();
             
-            // 낚시대 목록에 있는 아이템인지 확인
-            let isRod = false;
-            let rodLevel = -1;
-            
-            // 낚시대 정보 확인
-            for (const [level, name] of Object.entries(rodData)) {
-              if (name === itemName) {
-                isRod = true;
-                rodLevel = parseInt(level);
+            const formatted = `[${time}] ${nickname}: ${text}`;
+            saveLog(room, formatted, userId, nickname);
+            broadcast(room, { type: 'chat', text: formatted });
+            return;
+          }
+          
+        } catch (e) {
+          console.error('메시지 처리 오류:', e);
+        }
+      });
+      
+      // 이하 helper 함수들
+      function handleShopItemsRequest(ws) {
+        const rodItems = [];
+        for (const [rodName, rodInfo] of Object.entries(rodData)) {
+          if (rodName === "맨손") continue;
+          
+          rodItems.push({
+            name: rodName,
+            price: rodInfo.price,
+            fishingSkill: rodInfo.fishingSkill,
+            requires: rodInfo.requires
+          });
+        }
+        
+        const accessoryItems = [];
+        for (const [accName, accInfo] of Object.entries(accessoryData)) {
+          if (accName === "없음") continue;
+          
+          accessoryItems.push({
+            name: accName,
+            price: accInfo.price,
+            cooldownReduction: accInfo.cooldownReduction,
+            sellBonus: accInfo.sellBonus,
+            requires: accInfo.requires
+          });
+        }
+        
+        ws.send(JSON.stringify({
+          type: 'shopItems',
+          rods: rodItems,
+          accessories: accessoryItems
+        }));
+      }
+      
+      function handleUserInfoRequest(ws, targetUserId) {
+        const info = {
+          type: 'userInfo',
+          userId: targetUserId,
+          inventory: inventories.get(targetUserId) || {},
+          gold: userGold.get(targetUserId) || 0,
+          fishingSkill: fishingSkills.get(targetUserId) || 0
+        };
+        ws.send(JSON.stringify(info));
+      }
+      
+      function handleJoin(ws, nickname, room, uuid, ip) {
+        const userId = uuid || ip;
+        
+        // 동일 ID와 동일 닉네임으로 이미 접속 중인 기존 연결이 있으면 종료
+        for (const [client, info] of clients.entries()) {
+          if (info.userId === userId && info.nickname === nickname && client !== ws) {
+            client.send(JSON.stringify({ text: `⚠️ 다른 위치에서 ${nickname}으로 접속되어 연결이 종료됩니다.` }));
+            clients.delete(client);
+            client.terminate();
+          }
+        }
+
+        // 새 연결 등록
+        clients.set(ws, { userId, nickname, room });
+        if (!inventories.has(userId)) {
+          inventories.set(userId, {});
+          saveDatabase();
+        }
+        if (!userGold.has(userId)) {
+          userGold.set(userId, 0);
+          saveDatabase();
+        }
+
+        // 참여자 목록 생성 및 전송
+        const allUsers = [];
+        for (const [, info] of clients) {
+          if (info.room === room) {
+            allUsers.push({ userId: info.userId, nickname: info.nickname });
+          }
+        }
+        
+        ws.send(JSON.stringify({ 
+          type: 'full_user_list', 
+          users: allUsers 
+        }));
+
+        // join 메시지 전송
+        const joinMsg = {
+          type: 'join',
+          text: `[${getTime()}] 💬 ${nickname}님이 입장했습니다.`,
+          userId,
+          nickname
+        };
+        broadcast(room, joinMsg);
+        
+        // 최신 목록 전송
+        broadcast(room, { 
+          type: 'full_user_list', 
+          users: allUsers 
+        });
+      }
+      
+      function handleBuyItem(ws, info, parsed) {
+        const { userId, nickname, room } = info;
+        const { item, price } = parsed;
+        const time = getTime();
+        
+        // 골드 확인
+        let gold = userGold.get(userId) || 0;
+        
+        if (gold < price) {
+          ws.send(JSON.stringify({
+            type: 'chat',
+            text: `[${time}] ⚠️ 골드가 부족합니다. 필요: ${formatPrice(price)}골드, 보유: ${formatPrice(gold)}골드`
+          }));
+          return;
+        }
+        
+        // 아이템 구매 처리
+        if (item.startsWith('구매 ')) {
+          const itemName = item.substring(3);
+          
+          // 아이템 확인
+          let isRod = false;
+          let rodLevel = -1;
+          
+          // 낚시대 확인
+          for (const [level, rodName] of Object.entries(rodData)) {
+            if (rodName === itemName) {
+              isRod = true;
+              rodLevel = parseInt(level);
+              break;
+            }
+          }
+          
+          // 악세사리 확인
+          let isAccessory = false;
+          if (!isRod) {
+            for (const [level, accName] of Object.entries(accessoryData)) {
+              if (accName === itemName) {
+                isAccessory = true;
                 break;
               }
             }
-            
-            // 악세서리 정보 확인
-            let isAccessory = false;
-            if (!isRod) {
-              for (const [level, name] of Object.entries(accessoryData)) {
-                if (name === itemName) {
-                  isAccessory = true;
-                  break;
-                }
-              }
-            }
-            
-            if (!isRod && !isAccessory) {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] ❌ ${itemName}은(는) 구매할 수 없는 아이템입니다.`
-              }));
-              return;
-            }
-            
-            // 가격 설정
-            let price = 0;
-            if (isRod) {
-              // 낚시대 가격은 레벨에 따라 계산
-              price = rodLevel * rodLevel * 5000;
-            } else {
-              // 악세서리 가격 (인덱스에 따라 계산)
-              let accessoryLevel = 0;
-              for (const [level, name] of Object.entries(accessoryData)) {
-                if (name === itemName) {
-                  accessoryLevel = parseInt(level);
-                  break;
-                }
-              }
-              price = accessoryLevel * accessoryLevel * 8000;
-            }
-            
-            // 골드 확인
-            const gold = userGold.get(userId) || 0;
-            if (gold < price) {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] ❌ 골드가 부족합니다. 필요한 골드: ${formatPrice(price)}원, 현재 골드: ${formatPrice(gold)}원`
-              }));
-              return;
-            }
-            
-            // 구매 처리
-            // 골드 차감
-            userGold.set(userId, gold - price);
-            
-            // 인벤토리에 추가
-            const inv = inventories.get(userId) || {};
-            inv[itemName] = 1;
-            inventories.set(userId, inv);
-            
-            // 낚시대를 구매한 경우 낚시 스킬을 증가시킴
-            if (isRod) {
-              const currentSkill = fishingSkills.get(userId) || 0;
-              fishingSkills.set(userId, rodLevel); // 낚시대 레벨로 스킬 설정
-              
-              // 레벨업 메시지 부분을 추가
-              const skillUpMsg = `[${time}] 🎯 ${nickname}님의 낚시 스킬이 레벨 ${rodLevel}로 상승했습니다!`;
-              saveLog(room, skillUpMsg, userId, nickname);
-              broadcast(room, { type: 'chat', text: skillUpMsg });
-            }
-            
-            // 자동 장착
-            if (isRod && autoEquip.get(userId)) {
-              // 기존 장착된 낚시대 찾기
-              for (const [key, value] of Object.entries(inv)) {
-                if (key.startsWith('장착된 ')) {
-                  // 기존 장착 해제
-                  delete inv[key];
-                  // 원래 아이템 복원
-                  const originalItem = key.substring(4);
-                  inv[originalItem] = 1;
-                }
-              }
-              
-              // 새 아이템 장착
-              delete inv[itemName];
-              inv[`장착된 ${itemName}`] = 1;
-              equippedRod.set(userId, itemName);
-            }
-            
-            // 구매 성공 메시지
-            const result = `[${time}] 🎣 ${nickname}님이 ${itemName}을(를) 구매했습니다! (남은 골드: ${formatPrice(gold - price)}원)`;
-            saveLog(room, result, userId, nickname);
-            ws.send(JSON.stringify({ type: 'chat', text: result }));
-            
-            // 데이터베이스 저장
-            saveDatabase();
-            return;
           }
-
-          // 🎣 낚시하기
-          if (item === '낚시하기') {
-            const currentTime = Date.now();
-            
-            // 낚시 쿨다운 계산 (악세사리에 따른 쿨다운 감소)
-            let cooldownTime = 300000; // 기본 5분
-            const accessory = equippedAccessory.get(userId) || "없음";
-            
-            if (accessory !== "없음") {
-              cooldownTime = 300000 - accessoryData[accessory].cooldownReduction;
-            }
-            
-            if (lastFishingTime.has(userId) && (currentTime - lastFishingTime.get(userId)) < cooldownTime) {
-              const remainingTime = Math.ceil((cooldownTime - (currentTime - lastFishingTime.get(userId))) / 1000);
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] ⏳ ${remainingTime}초 후에 다시 낚시할 수 있습니다.`
-              }));
-              return;
-            }
-            
-            // 낚시 스킬 레벨에 따른 물고기 범위 조정
-            const skillLevel = fishingSkills.get(userId) || 0;
-            let fishStartIndex = 0, fishEndIndex = 10;
-            
-            // 낚시 스킬 레벨에 따른 슬라이스 설정
-            if (skillLevel === 0 || skillLevel === 1) {
-              fishStartIndex = 0;
-              fishEndIndex = 10;
-            } else if (skillLevel === 2) {
-              fishStartIndex = 1;
-              fishEndIndex = 10;
-            } else if (skillLevel >= 3 && skillLevel <= 26) {
-              // 매 레벨마다 시작 인덱스와 끝 인덱스를 1씩 늘림
-              fishStartIndex = skillLevel - 1;
-              fishEndIndex = skillLevel + 8;
-            } else if (skillLevel >= 27) {
-              // 최대 레벨은 고정된 범위 사용
-              fishStartIndex = 26;
-              fishEndIndex = 35;
-            }
-            
-            // 물고기 배열 범위 조정
-            const effectiveFishTypes = fishTypes.slice(fishStartIndex, fishEndIndex);
-            
-            // 최종 물고기 선택
-            let randomValue = Math.random() * 100;
-            let cumulativeProbability = 0;
-            let selectedFish;
-            
-            // 희귀 물고기 (스타피쉬) 확률 체크
-            if (Math.random() < 0.005) {
-              selectedFish = fishTypes[fishTypes.length - 1]; // 스타피쉬
-            } else {
-              for (let i = 0; i < Math.min(catchProbabilities.length, effectiveFishTypes.length); i++) {
-                cumulativeProbability += catchProbabilities[i];
-                if (randomValue < cumulativeProbability) {
-                  selectedFish = effectiveFishTypes[i];
-                  break;
-                }
-              }
-              
-              // 기본값 설정 (확률이 맞지 않는 경우를 대비)
-              if (!selectedFish) {
-                selectedFish = effectiveFishTypes[0];
-              }
-            }
-            
-            // 인벤토리 및 낚시 횟수 업데이트
-            const inv = inventories.get(userId) || {};
-            inv[selectedFish.name] = (inv[selectedFish.name] || 0) + 1;
-            inventories.set(userId, inv);
-            
-            // 마지막 낚시 시간 업데이트
-            lastFishingTime.set(userId, currentTime);
-            
-            // 결과 메시지
-            const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
-            saveLog(room, result, userId, nickname);
-            broadcast(room, { type: 'chat', text: result });
-            
-            // 데이터베이스 저장
-            saveDatabase();
-            return;
-          }
-
-          // 💰 판매
-          if (item === '판매') {
-            const inv = inventories.get(userId) || {};
-            let earned = 0;
-            
-            // 모든 물고기 순회하며 판매 처리
-            for (const fish of fishTypes) {
-              const count = inv[fish.name] || 0;
-              // 스타피쉬는 판매하지 않음
-              if (fish.name === '스타피쉬') continue;
-              earned += count * fish.price;
-              delete inv[fish.name];
-            }
-            
-            // 판매 금액 계산 (악세사리 보너스 적용)
-            const accessory = equippedAccessory.get(userId) || "없음";
-            let bonusMultiplier = 1.0;
-            
-            if (accessory !== "없음") {
-              bonusMultiplier = 1.0 + accessoryData[accessory].sellBonus;
-            }
-            
-            const finalEarned = Math.floor(earned * bonusMultiplier);
-            
-            // 골드 추가
-            userGold.set(userId, (userGold.get(userId) || 0) + finalEarned);
-            
-            // 인벤토리 업데이트
-            inventories.set(userId, inv);
-            
-            // 판매 결과 메시지 (판매한 물고기 상세 정보 포함)
-            let result = `[${time}] 💰 ${nickname}님이 다음 물고기를 판매했습니다:\n`;
-            for (const fish of fishTypes) {
-              if (inv[fish.name] > 0) {
-                result += `- ${fish.name} ${inv[fish.name]}마리 (${formatPrice(fish.price * inv[fish.name])}원)\n`;
-              }
-            }
-            
-            if (bonusMultiplier > 1.0) {
-              result += `\n\n악세사리(${accessory}) 판매 보너스 ${Math.floor((bonusMultiplier - 1) * 100)}% 적용!`;
-            }
-            
-            result += `\n\n총 획득 골드: ${formatPrice(finalEarned)}원\n현재 골드: ${formatPrice(userGold.get(userId))}원`;
-            
-            saveLog(room, result, userId, nickname);
-            ws.send(JSON.stringify({ type: 'chat', text: result }));
-            
-            // 간소화된 알림을 다른 사용자에게 전송
-            const publicMsg = `[${time}] 💰 ${nickname}님이 물고기를 판매하여 ${formatPrice(finalEarned)}원을 획득했습니다!`;
-            for (const [client, info] of clients) {
-              if (client !== ws && info.room === room) {
-                client.send(JSON.stringify({ type: 'chat', text: publicMsg }));
-              }
-            }
-            
-            // 데이터베이스 저장
-            saveDatabase();
-            return;
-          }
-
-          // 💰 특정 물고기 판매하기
-          const sellMatch = item.match(/^판매하기\s+(\S+)\s+(\d+)$/);
-          if (sellMatch) {
-            handleSellFish(ws, info, sellMatch, time);
+          
+          if (!isRod && !isAccessory) {
+            ws.send(JSON.stringify({
+              type: 'chat',
+              text: `[${time}] ❌ ${itemName}은(는) 구매할 수 없는 아이템입니다.`
+            }));
             return;
           }
           
-          // 전체 물고기 판매하기
-          const sellAllMatch = item === '전체판매';
-          if (sellAllMatch) {
-            handleSellAll(ws, info, time);
+          // 가격 계산
+          let itemPrice = 0;
+          if (isRod) {
+            itemPrice = rodData[itemName].price;
+          } else {
+            itemPrice = accessoryData[itemName].price;
+          }
+          
+          // 골드 확인
+          if (gold < itemPrice) {
+            ws.send(JSON.stringify({
+              type: 'chat',
+              text: `[${time}] ❌ 골드가 부족합니다. 필요한 골드: ${formatPrice(itemPrice)}원, 현재 골드: ${formatPrice(gold)}원`
+            }));
             return;
           }
           
-          // 📦 인벤토리 조회
-          if (item === '인벤토리') {
-            const inventoryDisplay = showInventory(userId, nickname);
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: inventoryDisplay
-            }));
-            return;
+          // 구매 처리
+          userGold.set(userId, gold - itemPrice);
+          
+          // 인벤토리에 추가
+          const inv = inventories.get(userId) || {};
+          inv[itemName] = (inv[itemName] || 0) + 1;
+          inventories.set(userId, inv);
+          
+          // 낚시대를 구매한 경우 낚시 스킬을 증가시킴
+          if (isRod) {
+            fishingSkills.set(userId, rodLevel);
+            
+            // 스킬업 메시지
+            const skillUpMsg = `[${time}] 🎯 ${nickname}님의 낚시 스킬이 레벨 ${rodLevel}로 상승했습니다!`;
+            saveLog(room, skillUpMsg, userId, nickname);
+            broadcast(room, { type: 'chat', text: skillUpMsg });
           }
-
-          // 일반 판매 명령어 안내
-          if (item === '판매하기') {
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: `[${time}] ℹ️ 사용법: '판매하기 [물고기이름] [수량]'. 예: '판매하기 타코문어 5'
-⚠️ 참고: 낚시대와 악세서리는 판매할 수 없습니다.`
-            }));
-            return;
-          }
-
-          // 도움말 명령어
-          if (item === '도움말' || item === '명령어' || item === '도움') {
-            const helpText = `[${time}] 📚 명령어 안내:
-- 낚시하기: 물고기를 낚습니다. 쿨다운이 있습니다.
-- 인벤토리: 현재 보유한 아이템과 장비, 골드를 확인합니다.
-- 판매하기 [물고기이름] [수량]: 특정 물고기를 판매합니다. 
-- 전체판매: 모든 물고기를 판매합니다.
-
-📊 낚시 시스템 설명:
-- 낚시 스킬은 더 좋은 낚시대를 구매하면 증가합니다.
-- 낚시 스킬이 높을수록 더 좋은 물고기를 낚을 수 있습니다.
-- 액세서리는 쿨다운 시간과 판매 보너스에 영향을 줍니다.
-
-⚠️ 참고: 낚시대와 악세서리는 판매할 수 없습니다.`;
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: helpText
-            }));
-            return;
-          }
-
-          // 📦 인벤토리 조회
-          if (item === '인벤토리') {
-            const inventoryDisplay = showInventory(userId, nickname);
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: inventoryDisplay
-            }));
-            return;
-          }
-
-          // 일반 채팅 메시지
-          const formatted = `[${time}] ${nickname}: ${item}`;
-          saveLog(room, formatted, userId, nickname);
-          broadcast(room, { type: 'chat', text: formatted });
-        } catch (e) {
-          console.error('WebSocket error:', e);
+          
+          // 구매 성공 메시지
+          const result = `[${time}] 🎣 ${nickname}님이 ${itemName}을(를) 구매했습니다! (남은 골드: ${formatPrice(gold - itemPrice)}원)`;
+          saveLog(room, result, userId, nickname);
+          ws.send(JSON.stringify({ type: 'chat', text: result }));
+          
+          // 데이터베이스 저장
+          saveDatabase();
         }
-      });
-
+      }
+      
       ws.on('close', () => {
         const info = clients.get(ws);
         if (info) {
