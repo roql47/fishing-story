@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>🎣 낚시 채팅방</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6f9;
+      color: #333;
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+    }
+    .chat-container {
+      flex: 1;
+    }
+    .user-list-container {
+      width: 200px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      height: fit-content;
+    }
+    .user-list-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #4a90e2;
+      text-align: center;
+    }
+    .user-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .user-item {
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    .user-item:last-child {
+      border-bottom: none;
+    }
+    .user-item:hover {
+      background-color: #f5f5f5;
+    }
+    h1 {
+      color: #4a90e2;
+      text-align: center;
+    }
+    #status {
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    #messages {
+      height: 300px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      white-space: pre-line;
+    }
+    #messageForm {
+      display: flex;
+      gap: 5px;
+    }
+    #messageInput {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #357ab7;
+    }
+    #controls {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    #controls label {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #controls input {
+      flex: 1;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .userNickname {
+      color: #4a90e2;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    /* 상점 스타일 */
+    .shop-container {
+      margin-top: 20px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+    }
+    .shop-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #4a90e2;
+      text-align: center;
+    }
+    .shop-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .shop-item:last-child {
+      border-bottom: none;
+    }
+    .shop-item-info {
+      flex: 1;
+    }
+    .shop-item-name {
+      font-weight: bold;
+    }
+    .shop-item-price {
+      color: #4a90e2;
+    }
+    .shop-item-desc {
+      font-size: 0.9em;
+      color: #666;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      background: #f1f1f1;
+      border: 1px solid #ccc;
+      border-bottom: none;
+      border-radius: 5px 5px 0 0;
+      margin-right: 5px;
+    }
+    .tab.active {
+      background: #fff;
+      border-bottom: 1px solid #fff;
+      margin-bottom: -1px;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    /* 로그인 및 회원가입 폼 스타일 */
+    .auth-container {
+      max-width: 400px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .auth-form input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .auth-form button {
+      margin-top: 10px;
+    }
+    .auth-toggle {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    .auth-toggle a {
+      color: #4a90e2;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .auth-toggle a:hover {
+      text-decoration: underline;
+    }
+    .auth-message {
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+    .auth-message.error {
+      background: #ffebee;
+      color: #d32f2f;
+      display: block;
+    }
+    .auth-message.success {
+      background: #e8f5e9;
+      color: #388e3c;
+      display: block;
+    }
+    .user-info {
+      background: #f1f8e9;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .user-info-text {
+      font-weight: bold;
+    }
+    #logoutBtn {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+    #authContainer {
+      display: block;
+    }
+    #chatContainer {
+      display: none;
+    }
+    /* 모달 스타일 추가 */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    .modal-content {
+      background-color: white;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 5px;
+      width: 80%;
+      max-width: 500px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    .close-modal {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close-modal:hover {
+      color: #555;
+    }
+    .inventory-list {
+      margin-top: 15px;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+    .inventory-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .modal-title {
+      color: #4a90e2;
+      margin-top: 0;
+      font-size: 1.2em;
+    }
+    /* Fish 이모티콘 추가 */
+    .fish-emoji {
+      margin-right: 5px;
+    }
+    
+    .gold-amount {
+      color: #f8c537;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- 인증 컨테이너 -->
+  <div id="authContainer" class="auth-container">
+    <h1>🎣 낚시 채팅방</h1>
+    
+    <!-- 로그인 폼 -->
+    <div id="loginForm" class="auth-form">
+      <h2>로그인</h2>
+      <input type="text" id="loginUsername" placeholder="사용자 이름" required>
+      <input type="password" id="loginPassword" placeholder="비밀번호" required>
+      <button id="loginBtn">로그인</button>
+      <div id="loginMessage" class="auth-message"></div>
+      <div class="auth-toggle">
+        계정이 없으신가요? <a id="showRegisterBtn">회원가입</a>
+      </div>
+      <div class="auth-toggle">
+        <a id="guestLoginBtn">게스트로 입장하기</a>
+      </div>
+    </div>
+    
+    <!-- 회원가입 폼 -->
+    <div id="registerForm" class="auth-form" style="display: none;">
+      <h2>회원가입</h2>
+      <input type="text" id="registerUsername" placeholder="사용자 이름" required>
+      <input type="password" id="registerPassword" placeholder="비밀번호" required>
+      <input type="password" id="confirmPassword" placeholder="비밀번호 확인" required>
+      <button id="registerBtn">회원가입</button>
+      <div id="registerMessage" class="auth-message"></div>
+      <div class="auth-toggle">
+        이미 계정이 있으신가요? <a id="showLoginBtn">로그인</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 채팅 컨테이너 -->
+  <div id="chatContainer" style="width: 100%; display: flex;">
+    <div class="chat-container">
+      <h1>🎣 낚시 채팅방</h1>
+      
+      <div id="userInfo" class="user-info">
+        <span id="userInfoText" class="user-info-text">게스트로 로그인됨</span>
+        <button id="logoutBtn">로그아웃</button>
+      </div>
+      
+      <div id="status">서버 연결 상태: <span style="color:red;">연결 중...</span></div>
+      
+      <div id="controls">
+        <label>방 이름: <input id="roomInput" value="기본방" /></label>
+        <button id="joinButton">입장</button>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="chat">💬 채팅</div>
+        <div class="tab" data-tab="shop">🛒 상점</div>
+      </div>
+
+      <div id="chatTab" class="tab-content active">
+        <div id="messages"></div>
+
+        <form id="messageForm" style="display:none;">
+          <input type="text" id="messageInput" placeholder="명령어나 메시지 입력..." />
+          <button type="submit">전송</button>
+        </form>
+      </div>
+
+      <div id="shopTab" class="tab-content">
+        <div class="shop-container">
+          <div class="shop-title">🛒 낚시 용품 상점</div>
+          <div class="shop-item">
+            <div class="shop-item-info">
+              <div class="shop-item-name">낡은 낚싯대</div>
+              <div class="shop-item-desc">기본적인 낚시를 할 수 있는 낡은 낚싯대입니다.</div>
+              <div class="shop-item-price">💰 100 골드</div>
+            </div>
+            <button id="buyFishingRod">구매하기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="user-list-container">
+      <div class="user-list-title">👥 참여자 목록 (<span id="userCount">0</span>명)</div>
+      <ul id="userList" class="user-list">
+        <!-- 참여자 목록이 여기에 동적으로 추가됩니다 -->
+      </ul>
+    </div>
+  </div>
+
+  <!-- 인벤토리 모달 추가 -->
+  <div id="inventoryModal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeInventoryModal()">&times;</span>
+      <h3 class="modal-title" id="modalTitle">사용자 인벤토리</h3>
+      <div id="inventoryContent" class="inventory-list">
+        <!-- 인벤토리 항목들이 여기에 동적으로 추가됨 -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM 요소 참조
+    const authContainer = document.getElementById('authContainer');
+    const chatContainer = document.getElementById('chatContainer');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const loginUsername = document.getElementById('loginUsername');
+    const loginPassword = document.getElementById('loginPassword');
+    const registerUsername = document.getElementById('registerUsername');
+    const registerPassword = document.getElementById('registerPassword');
+    const confirmPassword = document.getElementById('confirmPassword');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const showRegisterBtn = document.getElementById('showRegisterBtn');
+    const showLoginBtn = document.getElementById('showLoginBtn');
+    const guestLoginBtn = document.getElementById('guestLoginBtn');
+    const loginMessage = document.getElementById('loginMessage');
+    const registerMessage = document.getElementById('registerMessage');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userInfoText = document.getElementById('userInfoText');
+    
+    const statusText = document.getElementById('status');
+    const messages = document.getElementById('messages');
+    const form = document.getElementById('messageForm');
+    const input = document.getElementById('messageInput');
+    const roomInput = document.getElementById('roomInput');
+    const joinBtn = document.getElementById('joinButton');
+    const userList = document.getElementById('userList');
+    const userCountElement = document.getElementById('userCount');
+    const buyFishingRodBtn = document.getElementById('buyFishingRod');
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    let socket;
+    let currentUsers = new Set();
+    let isConnected = false;
+    let currentUser = {
+      uuid: null,
+      username: null,
+      isGuest: true
+    };
+
+    const inventoryModal = document.getElementById('inventoryModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const inventoryContent = document.getElementById('inventoryContent');
+    let currentUserData = [];
+
+    // 로컬스토리지에서 사용자 정보 불러오기
+    function loadUserFromStorage() {
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        
+        // 사용자 정보 표시
+        if (currentUser.isGuest) {
+          userInfoText.textContent = "게스트로 로그인됨";
+        } else {
+          userInfoText.textContent = `${currentUser.username}으로 로그인됨 (UUID: ${currentUser.uuid.substring(0, 8)}...)`;
+        }
+        
+        // 채팅 화면 보이기
+        authContainer.style.display = 'none';
+        chatContainer.style.display = 'flex';
+      }
+    }
+
+    // 초기화 시 로컬스토리지 확인
+    loadUserFromStorage();
+
+    // 폼 전환 이벤트 리스너
+    showRegisterBtn.addEventListener('click', () => {
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'block';
+      loginMessage.textContent = '';
+      loginMessage.className = 'auth-message';
+    });
+
+    showLoginBtn.addEventListener('click', () => {
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'block';
+      registerMessage.textContent = '';
+      registerMessage.className = 'auth-message';
+    });
+
+    // 게스트 로그인
+    guestLoginBtn.addEventListener('click', () => {
+      currentUser = {
+        uuid: null,
+        username: null,
+        isGuest: true
+      };
+      
+      // 로컬스토리지에 저장
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      
+      // 화면 전환
+      authContainer.style.display = 'none';
+      chatContainer.style.display = 'flex';
+      userInfoText.textContent = "게스트로 로그인됨";
+    });
+
+    // 로그아웃 기능
+    logoutBtn.addEventListener('click', () => {
+      // 소켓 연결 종료
+      if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+        socket.close();
+      }
+      
+      // 사용자 정보 초기화
+      currentUser = {
+        uuid: null,
+        username: null,
+        isGuest: true
+      };
+      
+      // 로컬스토리지에서 제거
+      localStorage.removeItem('currentUser');
+      
+      // 화면 초기화
+      messages.innerHTML = '';
+      currentUsers.clear();
+      updateUserList();
+      form.style.display = 'none';
+      
+      // 로그인 화면으로 전환
+      chatContainer.style.display = 'none';
+      authContainer.style.display = 'block';
+      loginForm.style.display = 'block';
+      registerForm.style.display = 'none';
+    });
+
+    // 회원가입 기능
+    registerBtn.addEventListener('click', async () => {
+      const username = registerUsername.value.trim();
+      const password = registerPassword.value;
+      const confirmPwd = confirmPassword.value;
+      
+      // 입력 검증
+      if (!username || !password) {
+        registerMessage.textContent = '사용자 이름과 비밀번호를 모두 입력해주세요.';
+        registerMessage.className = 'auth-message error';
+        return;
+      }
+      
+      if (password !== confirmPwd) {
+        registerMessage.textContent = '비밀번호가 일치하지 않습니다.';
+        registerMessage.className = 'auth-message error';
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          registerMessage.textContent = data.message;
+          registerMessage.className = 'auth-message success';
+          
+          // 3초 후 로그인 폼으로 전환
+          setTimeout(() => {
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+            loginUsername.value = username;
+            registerMessage.textContent = '';
+            registerMessage.className = 'auth-message';
+          }, 3000);
+        } else {
+          registerMessage.textContent = data.message;
+          registerMessage.className = 'auth-message error';
+        }
+      } catch (error) {
+        registerMessage.textContent = '서버 오류가 발생했습니다. 다시 시도해주세요.';
+        registerMessage.className = 'auth-message error';
+      }
+    });
+
+    // 로그인 기능
+    loginBtn.addEventListener('click', async () => {
+      const username = loginUsername.value.trim();
+      const password = loginPassword.value;
+      
+      // 입력 검증
+      if (!username || !password) {
+        loginMessage.textContent = '사용자 이름과 비밀번호를 모두 입력해주세요.';
+        loginMessage.className = 'auth-message error';
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          loginMessage.textContent = data.message;
+          loginMessage.className = 'auth-message success';
+          
+          // 사용자 정보 저장
+          currentUser = {
+            uuid: data.uuid,
+            username: data.username,
+            isGuest: false
+          };
+          
+          // 로컬스토리지에 저장
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          
+          // 사용자 정보 표시
+          userInfoText.textContent = `${currentUser.username}으로 로그인됨 (UUID: ${currentUser.uuid.substring(0, 8)}...)`;
+          
+          // 화면 전환
+          setTimeout(() => {
+            authContainer.style.display = 'none';
+            chatContainer.style.display = 'flex';
+            loginMessage.textContent = '';
+            loginMessage.className = 'auth-message';
+          }, 1500);
+        } else {
+          loginMessage.textContent = data.message;
+          loginMessage.className = 'auth-message error';
+        }
+      } catch (error) {
+        loginMessage.textContent = '서버 오류가 발생했습니다. 다시 시도해주세요.';
+        loginMessage.className = 'auth-message error';
+      }
+    });
+
+    // 탭 전환 기능
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // 활성 탭 변경
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // 활성 콘텐츠 변경
+        const tabId = tab.getAttribute('data-tab');
+        tabContents.forEach(content => {
+          content.classList.remove('active');
+        });
+        document.getElementById(tabId + 'Tab').classList.add('active');
+      });
+    });
+
+    // 낡은 낚싯대 구매 기능
+    buyFishingRodBtn.addEventListener('click', () => {
+      if (!isConnected) {
+        alert('서버에 연결되어 있지 않습니다. 먼저 채팅방에 입장하세요.');
+        return;
+      }
+      
+      socket.send(JSON.stringify({ 
+        type: 'buy', 
+        item: '낡은 낚싯대',
+        price: 100 
+      }));
+    });
+
+    function updateUserList() {
+      const userListElement = document.getElementById('userList');
+      userListElement.innerHTML = '';
+      
+      currentUserData.forEach(user => {
+        const listItem = document.createElement('li');
+        listItem.className = 'user-item';
+        listItem.textContent = user.nickname;
+        
+        // 닉네임 클릭 이벤트 추가
+        listItem.addEventListener('click', () => {
+          if (user.userId) {
+            requestUserInventory(user.userId, user.nickname);
+          } else {
+            alert('사용자 정보를 가져올 수 없습니다.');
+          }
+        });
+        
+        userListElement.appendChild(listItem);
+      });
+      
+      userCountElement.textContent = currentUserData.length;
+    }
+
+    // 초기 목록 업데이트
+    updateUserList();
+
+    function addMessage(msg, type = 'chat') {
+      if (type === 'join' && msg.userId && msg.nickname) {
+        // join 메시지: 닉네임을 클릭 가능하도록 표시
+        const div = document.createElement('div');
+        const timeMatch = msg.text.match(/^\[.*?\]/);
+        const timeStr = timeMatch ? timeMatch[0] : '';
+        const prefix = " 💬 ";
+        const suffix = "님이 입장했습니다.";
+        div.innerHTML = `${timeStr}${prefix}<span class="userNickname" data-userid="${msg.userId}">${msg.nickname}</span>${suffix}`;
+        div.querySelector('.userNickname').onclick = function () {
+          const targetUserId = this.getAttribute('data-userid');
+          socket.send(JSON.stringify({ type: 'requestUserInfo', targetUserId }));
+        };
+        messages.appendChild(div);
+      } else if (type === 'leave' && msg.nickname) {
+        // 퇴장 메시지 표시
+        const div = document.createElement('div');
+        div.textContent = msg.text;
+        messages.appendChild(div);
+      } else {
+        const div = document.createElement('div');
+        div.textContent = typeof msg === 'string' ? msg : msg.text;
+        messages.appendChild(div);
+      }
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // 연결 함수
+    function connect(nickname, room) {
+      // 현재 호스트 기반으로 WebSocket URL 생성
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      socket = new WebSocket(`${protocol}//${host}`);
+      
+      socket.addEventListener('open', function(event) {
+        // UUID가 있으면 함께 전송
+        socket.send(JSON.stringify({ 
+          type: 'join', 
+          nickname, 
+          room,
+          uuid: currentUser.uuid 
+        }));
+        
+        statusText.innerHTML = '서버 연결 상태: <span style="color:green;">연결됨</span>';
+        form.style.display = 'flex';
+        input.focus();
+        isConnected = true;
+      });
+
+      socket.onmessage = (event) => {
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch (e) {
+          data = { type: 'chat', text: event.data };
+        }
+        if (data.type === 'join') {
+          addMessage(data, 'join');
+        } else if (data.type === 'leave') {
+          addMessage(data, 'leave');
+        } else if (data.type === 'userInfo') {
+          // 인벤토리 정보 모달로 표시
+          showInventoryModal(
+            currentUserData.find(user => user.userId === data.userId)?.nickname || '알 수 없음',
+            data.inventory || {},
+            data.gold || 0
+          );
+        } else if (data.type === 'user_list') {
+          // 기존 사용자 목록을 처리
+          currentUserData = data.users;
+          updateUserList();
+        } else if (data.type === 'full_user_list') {
+          // 전체 사용자 목록으로 업데이트
+          currentUserData = data.users;
+          updateUserList();
+        } else {
+          addMessage(data);
+        }
+      };
+
+      socket.onclose = () => {
+        statusText.innerHTML = '서버 연결 상태: <span style="color:red;">연결 종료</span>';
+        addMessage('❌ 서버 연결 종료됨');
+        form.style.display = 'none';
+        currentUsers.clear();
+        updateUserList();
+        isConnected = false;
+      };
+
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        if (!input.value.trim()) return;
+        socket.send(JSON.stringify({ type: 'message', text: input.value.trim() }));
+        input.value = '';
+      };
+    }
+
+    joinBtn.onclick = () => {
+      const room = roomInput.value.trim() || '기본방';
+      
+      // 닉네임 설정 (로그인된 사용자는 사용자 이름, 게스트는 임의 이름)
+      let nickname;
+      if (!currentUser.isGuest && currentUser.username) {
+        nickname = currentUser.username;
+      } else {
+        nickname = 'Guest_' + Math.floor(Math.random() * 10000);
+      }
+
+      // 기존 연결이 있으면 닫기
+      if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+        socket.close();
+      }
+
+      connect(nickname, room);
+    };
+
+    // 사용자 인벤토리 요청 함수
+    function requestUserInventory(userId, nickname) {
+      if (!isConnected) {
+        alert('서버에 연결되어 있지 않습니다.');
+        return;
+      }
+      
+      socket.send(JSON.stringify({
+        type: 'requestUserInfo',
+        targetUserId: userId
+      }));
+    }
+    
+    // 인벤토리 모달 표시 함수
+    function showInventoryModal(nickname, inventory, gold) {
+      modalTitle.textContent = `${nickname}님의 인벤토리`;
+      
+      // 인벤토리 내용 표시
+      inventoryContent.innerHTML = '';
+      
+      // 골드 표시
+      const goldItem = document.createElement('div');
+      goldItem.className = 'inventory-item';
+      goldItem.innerHTML = `<span>💰 골드</span><span class="gold-amount">${gold} G</span>`;
+      inventoryContent.appendChild(goldItem);
+      
+      // 물고기 및 아이템 표시
+      let hasItems = false;
+      
+      // 낚싯대 표시
+      if (inventory['낚싯대']) {
+        hasItems = true;
+        const rodItem = document.createElement('div');
+        rodItem.className = 'inventory-item';
+        rodItem.innerHTML = `<span>🎣 낚싯대</span><span>${inventory['낚싯대']}개</span>`;
+        inventoryContent.appendChild(rodItem);
+      }
+      
+      // 물고기 표시 (고등어, 멸치, 문어, 쭈꾸미 순서로)
+      const fishTypes = ['고등어', '멸치', '문어', '쭈꾸미'];
+      const fishEmojis = {'고등어': '🐟', '멸치': '🐠', '문어': '🐙', '쭈꾸미': '🦑'};
+      
+      fishTypes.forEach(fishType => {
+        if (inventory[fishType]) {
+          hasItems = true;
+          const fishItem = document.createElement('div');
+          fishItem.className = 'inventory-item';
+          fishItem.innerHTML = `<span>${fishEmojis[fishType] || '🐟'} ${fishType}</span><span>${inventory[fishType]}마리</span>`;
+          inventoryContent.appendChild(fishItem);
+        }
+      });
+      
+      // 기타 아이템들 표시
+      Object.keys(inventory).forEach(itemName => {
+        if (!fishTypes.includes(itemName) && itemName !== '낚싯대' && inventory[itemName]) {
+          hasItems = true;
+          const item = document.createElement('div');
+          item.className = 'inventory-item';
+          item.innerHTML = `<span>📦 ${itemName}</span><span>${inventory[itemName]}개</span>`;
+          inventoryContent.appendChild(item);
+        }
+      });
+      
+      // 아이템이 없는 경우 메시지 표시
+      if (!hasItems) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.textContent = '인벤토리가 비어있습니다.';
+        emptyMessage.style.textAlign = 'center';
+        emptyMessage.style.padding = '10px';
+        emptyMessage.style.color = '#888';
+        inventoryContent.appendChild(emptyMessage);
+      }
+      
+      // 모달 표시
+      inventoryModal.style.display = 'block';
+    }
+    
+    // 인벤토리 모달 닫기 함수
+    function closeInventoryModal() {
+      inventoryModal.style.display = 'none';
+    }
+    
+    // 모달 외부 클릭시 닫기
+    window.onclick = function(event) {
+      if (event.target === inventoryModal) {
+        closeInventoryModal();
+      }
+    };
+  </script>
+</body>
+</html>

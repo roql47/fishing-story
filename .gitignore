@@ -1,0 +1,19 @@
+# 노드 모듈
+node_modules/
+
+# 로그 파일
+logs
+*.log
+npm-debug.log*
+chatlogs/
+
+# 환경 설정 파일
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 기타 시스템 파일
+.DS_Store
+Thumbs.db 
