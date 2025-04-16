@@ -453,7 +453,7 @@
     <div class="modal-content">
       <span class="close-modal" onclick="closeInventoryModal()">&times;</span>
       <h3 class="modal-title" id="modalTitle">사용자 인벤토리</h3>
-      <div id="inventoryContent" class="inventory-list">
+      <div id="inventoryItems" class="inventory-list">
         <!-- 인벤토리 항목들이 여기에 동적으로 추가됨 -->
       </div>
     </div>
@@ -802,9 +802,13 @@
       // 현재 호스트 기반으로 WebSocket URL 생성
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
-      socket = new WebSocket(`${protocol}//${host}`);
+      const url = `${protocol}//${host}`;
+      console.log("연결 시도:", url);
+      
+      socket = new WebSocket(url);
       
       socket.addEventListener('open', function(event) {
+        console.log("WebSocket 연결 성공!");
         // UUID가 있으면 함께 전송
         socket.send(JSON.stringify({ 
           type: 'join', 
@@ -817,6 +821,13 @@
         form.style.display = 'flex';
         input.focus();
         isConnected = true;
+      });
+
+      socket.addEventListener('error', function(event) {
+        console.error("WebSocket 오류 발생:", event);
+        statusText.innerHTML = '서버 연결 상태: <span style="color:red;">연결 오류</span>';
+        isConnected = false;
+        alert('서버 연결에 실패했습니다. 페이지를 새로고침 하거나 나중에 다시 시도해주세요.');
       });
 
       socket.onmessage = (event) => {
@@ -896,74 +907,24 @@
 
     // 인벤토리 모달 표시 함수
     function showInventoryModal(nickname, inventory, gold, fishingSkill) {
-      const modal = document.getElementById('inventoryModal');
-      const closeBtn = document.querySelector('.close-modal');
-      const modalTitle = document.getElementById('modalTitle');
-      const inventoryList = document.getElementById('modalInventoryList');
-      const goldDisplay = document.getElementById('modalGoldAmount');
-      const skillDisplay = document.getElementById('modalSkillLevel');
+      // 현재 사용자 데이터 업데이트
+      currentUserData = {
+        nickname: nickname,
+        inventory: inventory,
+        gold: gold,
+        fishingSkill: fishingSkill
+      };
       
+      // 타이틀 설정
       modalTitle.textContent = `${nickname}의 인벤토리`;
-      goldDisplay.textContent = gold;
       
-      // 낚시 스킬 표시
-      if (fishingSkill !== undefined) {
-        skillDisplay.textContent = fishingSkill;
-        document.getElementById('skillLevelDisplay').style.display = 'block';
-      } else {
-        document.getElementById('skillLevelDisplay').style.display = 'none';
-      }
-      
-      // 인벤토리 목록 비우기
-      inventoryList.innerHTML = '';
-      
-      // 인벤토리 아이템 표시
-      let hasItems = false;
-      for (const item in inventory) {
-        const count = inventory[item];
-        if (count > 0) {
-          hasItems = true;
-          const itemElement = document.createElement('div');
-          itemElement.className = 'modal-inventory-item';
-          
-          // 아이템 종류에 따른 아이콘 추가
-          let itemIcon = '📦';
-          if (rodNames.includes(item)) {
-            itemIcon = '🎣';
-          } else if (accessoryNames.includes(item)) {
-            itemIcon = '💍';
-          } else {
-            // 물고기나 다른 아이템은 모두 같은 아이콘으로 처리
-            itemIcon = '🐟';
-          }
-          
-          itemElement.innerHTML = `
-            <span class="modal-item-name">${itemIcon} ${item}</span>
-            <span class="modal-item-count">${count}개</span>
-          `;
-          inventoryList.appendChild(itemElement);
-        }
-      }
-      
-      // 인벤토리가 비어있는 경우
-      if (!hasItems) {
-        inventoryList.innerHTML = '<div class="empty-inventory">인벤토리가 비었습니다.</div>';
-      }
+      // 인벤토리 표시 업데이트
+      userInventory = inventory;
+      userGold = gold;
+      updateInventoryDisplay();
       
       // 모달 표시
-      modal.style.display = 'block';
-      
-      // 닫기 버튼 이벤트 리스너
-      closeBtn.onclick = function() {
-        modal.style.display = 'none';
-      };
-      
-      // 모달 외부 클릭 시 닫기
-      window.onclick = function(event) {
-        if (event.target === modal) {
-          modal.style.display = 'none';
-        }
-      };
+      inventoryModal.style.display = 'block';
     }
     
     // 사용자 인벤토리 요청 함수
@@ -1239,7 +1200,13 @@
     }
 
     function updateStoreList() {
+      console.log("updateStoreList 호출됨");
       const storeList = document.getElementById('storeList');
+      if (!storeList) {
+        console.error("storeList 요소를 찾을 수 없습니다");
+        return;
+      }
+      
       storeList.innerHTML = '';
       
       // 낚시대 추가
@@ -1324,34 +1291,41 @@
       }
     }
 
-    // 페이지 로드 시 상점 아이템 업데이트
+    // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
+      console.log("페이지 로드됨");
+      
       // 가격 포맷 함수 추가
       window.formatPrice = function(price) {
         return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       };
       
       // 상점 리스트 초기화
-      updateStoreList();
+      if (document.getElementById('storeList')) {
+        console.log("상점 리스트 초기화");
+        updateStoreList();
       
-      // 상점에서 구매 버튼 클릭 이벤트 위임
-      document.getElementById('storeList').addEventListener('click', function(e) {
-        if (e.target.classList.contains('buy-btn')) {
-          const item = e.target.getAttribute('data-item');
-          const price = parseInt(e.target.getAttribute('data-price'));
-          
-          if (!isConnected) {
-            alert('서버에 연결되어 있지 않습니다. 먼저 채팅방에 입장하세요.');
-            return;
+        // 상점에서 구매 버튼 클릭 이벤트 위임
+        document.getElementById('storeList').addEventListener('click', function(e) {
+          if (e.target.classList.contains('buy-btn')) {
+            const item = e.target.getAttribute('data-item');
+            const price = parseInt(e.target.getAttribute('data-price'));
+            
+            if (!isConnected) {
+              alert('서버에 연결되어 있지 않습니다. 먼저 채팅방에 입장하세요.');
+              return;
+            }
+            
+            socket.send(JSON.stringify({ 
+              type: 'buy', 
+              item: '구매 ' + item,
+              price: price 
+            }));
           }
-          
-          socket.send(JSON.stringify({ 
-            type: 'buy', 
-            item: '구매 ' + item,
-            price: price 
-          }));
-        }
-      });
+        });
+      } else {
+        console.error("storeList 요소를 찾을 수 없습니다");
+      }
     });
   </script>
 </body>
