@@ -74,7 +74,7 @@ router.post('/fish', async (req, res) => {
     // 인벤토리 가져오기
     let inventory = await Inventory.findOne({ userId: user.uuid });
     if (!inventory) {
-      inventory = new Inventory({ userId: user.uuid, items: {} });
+      inventory = new Inventory({ userId: user.uuid, items: new Map() });
     }
     
     // 메모리에서 인벤토리 처리
@@ -82,9 +82,9 @@ router.post('/fish', async (req, res) => {
     userInventory[fishName] = (userInventory[fishName] || 0) + parseInt(quantity);
     inventories.set(user.uuid, userInventory);
     
-    // DB에 저장
-    const items = inventory.items || {};
-    items[fishName] = (items[fishName] || 0) + parseInt(quantity);
+    // DB에 저장 (Map 타입으로 변환)
+    const items = inventory.items || new Map();
+    items.set(fishName, (items.get(fishName) || 0) + parseInt(quantity));
     
     await Inventory.findOneAndUpdate(
       { userId: user.uuid },
@@ -138,7 +138,7 @@ router.post('/rod', async (req, res) => {
     // 인벤토리 가져오기
     let inventory = await Inventory.findOne({ userId: user.uuid });
     if (!inventory) {
-      inventory = new Inventory({ userId: user.uuid, items: {} });
+      inventory = new Inventory({ userId: user.uuid, items: new Map() });
     }
     
     // 메모리에서 인벤토리 처리
@@ -146,9 +146,9 @@ router.post('/rod', async (req, res) => {
     userInventory[rodName] = (userInventory[rodName] || 0) + parseInt(quantity);
     inventories.set(user.uuid, userInventory);
     
-    // DB에 저장
-    const items = inventory.items || {};
-    items[rodName] = (items[rodName] || 0) + parseInt(quantity);
+    // DB에 저장 (Map 타입으로 변환)
+    const items = inventory.items || new Map();
+    items.set(rodName, (items.get(rodName) || 0) + parseInt(quantity));
     
     await Inventory.findOneAndUpdate(
       { userId: user.uuid },
@@ -205,7 +205,7 @@ router.post('/accessory', async (req, res) => {
     // 인벤토리 가져오기
     let inventory = await Inventory.findOne({ userId: user.uuid });
     if (!inventory) {
-      inventory = new Inventory({ userId: user.uuid, items: {} });
+      inventory = new Inventory({ userId: user.uuid, items: new Map() });
     }
     
     // 메모리에서 인벤토리 처리
@@ -213,9 +213,9 @@ router.post('/accessory', async (req, res) => {
     userInventory[accessoryName] = (userInventory[accessoryName] || 0) + parseInt(quantity);
     inventories.set(user.uuid, userInventory);
     
-    // DB에 저장
-    const items = inventory.items || {};
-    items[accessoryName] = (items[accessoryName] || 0) + parseInt(quantity);
+    // DB에 저장 (Map 타입으로 변환)
+    const items = inventory.items || new Map();
+    items.set(accessoryName, (items.get(accessoryName) || 0) + parseInt(quantity));
     
     await Inventory.findOneAndUpdate(
       { userId: user.uuid },
