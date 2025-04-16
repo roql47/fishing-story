@@ -301,6 +301,68 @@
       color: #f8c537;
       font-weight: bold;
     }
+    .inventory-skill {
+      padding: 10px;
+      background-color: #e8f5e9;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .skill-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .skill-description {
+      font-size: 0.9em;
+      color: #388e3c;
+    }
+    .accessory-effect {
+      display: block;
+      font-size: 0.9em;
+      color: #5c6bc0;
+      margin-top: 5px;
+    }
+    .inventory-item.equipped {
+      background-color: #e3f2fd;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 8px;
+    }
+    .item-actions {
+      margin-top: 5px;
+    }
+    .store-section {
+      margin-bottom: 20px;
+    }
+    .store-section h3 {
+      margin-bottom: 10px;
+      color: #2c3e50;
+      border-bottom: 1px solid #ecf0f1;
+      padding-bottom: 5px;
+    }
+    .store-item {
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      margin-bottom: 6px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+    }
+    .item-effect {
+      font-size: 0.85em;
+      color: #3498db;
+      margin: 3px 0;
+    }
+    .item-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 5px;
+    }
+    .price {
+      color: #e74c3c;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -373,8 +435,8 @@
           <div class="shop-title">🛒 낚시 용품 상점</div>
           <div class="shop-item">
             <div class="shop-item-info">
-              <div class="shop-item-name">낡은 낚싯대</div>
-              <div class="shop-item-desc">기본적인 낚시를 할 수 있는 낡은 낚싯대입니다.</div>
+              <div class="shop-item-name">낡은낚시대</div>
+              <div class="shop-item-desc">기본적인 낚시를 할 수 있는 낡은 낚시대입니다.</div>
               <div class="shop-item-price">💰 100 골드</div>
             </div>
             <button id="buyFishingRod">구매하기</button>
@@ -448,6 +510,15 @@
     const modalTitle = document.getElementById('modalTitle');
     const inventoryContent = document.getElementById('inventoryContent');
     let currentUserData = [];
+
+    const accessoryNames = ['없음', '오래된반지', '은목걸이', '금귀걸이', '마법의펜던트', '에메랄드브로치', '토파즈이어링', '자수정팔찌', '백금티아라', '만드라고라허브', '에테르나무묘목', '몽마의조각상', '마카롱훈장', '빛나는마력순환체'];
+    const rodNames = ['맨손', '낡은낚시대', '일반낚시대', '단단한낚시대', '은낚시대', '금낚시대', '강철낚시대', '사파이어낚시대', '루비낚시대', '다이아몬드낚시대', '레드다이아몬드낚시대', '벚꽃낚시대', '꽃망울낚시대', '호롱불낚시대', '산호등낚시대', '피크닉', '마녀빗자루', '에테르낚시대', '별조각낚시대', '여우꼬리낚시대', '초콜릿롤낚시대', '호박유령낚시대', '핑크버니낚시대', '할로우낚시대', '여우불낚시대'];
+    const fishNames = [];
+    
+    // 사용자 데이터 저장 변수들
+    let userInventory = {};    // 사용자 인벤토리
+    let userGold = 0;          // 사용자 골드
+    let fishingCooldown = 0;   // 낚시 쿨다운
 
     // 로컬스토리지에서 사용자 정보 불러오기
     function loadUserFromStorage() {
@@ -667,7 +738,7 @@
       
       socket.send(JSON.stringify({ 
         type: 'buy', 
-        item: '낡은 낚싯대',
+        item: '낡은낚시대',
         price: 100 
       }));
     });
@@ -764,8 +835,16 @@
           showInventoryModal(
             currentUserData.find(user => user.userId === data.userId)?.nickname || '알 수 없음',
             data.inventory || {},
-            data.gold || 0
+            data.gold || 0,
+            data.fishingSkill || 0
           );
+        } else if (data.type === 'myInfo') {
+          // 나의 정보 업데이트
+          userInventory = data.inventory || {};
+          userGold = data.gold || 0;
+          currentUserData.fishingSkill = data.fishingSkill || 0;
+          document.getElementById('goldAmount').textContent = userGold;
+          updateInventoryDisplay();
         } else if (data.type === 'user_list') {
           // 기존 사용자 목록을 처리
           currentUserData = data.users;
@@ -815,6 +894,78 @@
       connect(nickname, room);
     };
 
+    // 인벤토리 모달 표시 함수
+    function showInventoryModal(nickname, inventory, gold, fishingSkill) {
+      const modal = document.getElementById('inventoryModal');
+      const closeBtn = document.querySelector('.close-modal');
+      const modalTitle = document.getElementById('modalTitle');
+      const inventoryList = document.getElementById('modalInventoryList');
+      const goldDisplay = document.getElementById('modalGoldAmount');
+      const skillDisplay = document.getElementById('modalSkillLevel');
+      
+      modalTitle.textContent = `${nickname}의 인벤토리`;
+      goldDisplay.textContent = gold;
+      
+      // 낚시 스킬 표시
+      if (fishingSkill !== undefined) {
+        skillDisplay.textContent = fishingSkill;
+        document.getElementById('skillLevelDisplay').style.display = 'block';
+      } else {
+        document.getElementById('skillLevelDisplay').style.display = 'none';
+      }
+      
+      // 인벤토리 목록 비우기
+      inventoryList.innerHTML = '';
+      
+      // 인벤토리 아이템 표시
+      let hasItems = false;
+      for (const item in inventory) {
+        const count = inventory[item];
+        if (count > 0) {
+          hasItems = true;
+          const itemElement = document.createElement('div');
+          itemElement.className = 'modal-inventory-item';
+          
+          // 아이템 종류에 따른 아이콘 추가
+          let itemIcon = '📦';
+          if (rodNames.includes(item)) {
+            itemIcon = '🎣';
+          } else if (accessoryNames.includes(item)) {
+            itemIcon = '💍';
+          } else {
+            // 물고기나 다른 아이템은 모두 같은 아이콘으로 처리
+            itemIcon = '🐟';
+          }
+          
+          itemElement.innerHTML = `
+            <span class="modal-item-name">${itemIcon} ${item}</span>
+            <span class="modal-item-count">${count}개</span>
+          `;
+          inventoryList.appendChild(itemElement);
+        }
+      }
+      
+      // 인벤토리가 비어있는 경우
+      if (!hasItems) {
+        inventoryList.innerHTML = '<div class="empty-inventory">인벤토리가 비었습니다.</div>';
+      }
+      
+      // 모달 표시
+      modal.style.display = 'block';
+      
+      // 닫기 버튼 이벤트 리스너
+      closeBtn.onclick = function() {
+        modal.style.display = 'none';
+      };
+      
+      // 모달 외부 클릭 시 닫기
+      window.onclick = function(event) {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      };
+    }
+    
     // 사용자 인벤토리 요청 함수
     function requestUserInventory(userId, nickname) {
       if (!isConnected) {
@@ -822,74 +973,10 @@
         return;
       }
       
-      socket.send(JSON.stringify({
-        type: 'requestUserInfo',
-        targetUserId: userId
+      socket.send(JSON.stringify({ 
+        type: 'requestUserInfo', 
+        targetUserId: userId 
       }));
-    }
-    
-    // 인벤토리 모달 표시 함수
-    function showInventoryModal(nickname, inventory, gold) {
-      modalTitle.textContent = `${nickname}님의 인벤토리`;
-      
-      // 인벤토리 내용 표시
-      inventoryContent.innerHTML = '';
-      
-      // 골드 표시
-      const goldItem = document.createElement('div');
-      goldItem.className = 'inventory-item';
-      goldItem.innerHTML = `<span>💰 골드</span><span class="gold-amount">${gold} G</span>`;
-      inventoryContent.appendChild(goldItem);
-      
-      // 물고기 및 아이템 표시
-      let hasItems = false;
-      
-      // 낚싯대 표시
-      if (inventory['낚싯대']) {
-        hasItems = true;
-        const rodItem = document.createElement('div');
-        rodItem.className = 'inventory-item';
-        rodItem.innerHTML = `<span>🎣 낚싯대</span><span>${inventory['낚싯대']}개</span>`;
-        inventoryContent.appendChild(rodItem);
-      }
-      
-      // 물고기 표시 (고등어, 멸치, 문어, 쭈꾸미 순서로)
-      const fishTypes = ['고등어', '멸치', '문어', '쭈꾸미'];
-      const fishEmojis = {'고등어': '🐟', '멸치': '🐠', '문어': '🐙', '쭈꾸미': '🦑'};
-      
-      fishTypes.forEach(fishType => {
-        if (inventory[fishType]) {
-          hasItems = true;
-          const fishItem = document.createElement('div');
-          fishItem.className = 'inventory-item';
-          fishItem.innerHTML = `<span>${fishEmojis[fishType] || '🐟'} ${fishType}</span><span>${inventory[fishType]}마리</span>`;
-          inventoryContent.appendChild(fishItem);
-        }
-      });
-      
-      // 기타 아이템들 표시
-      Object.keys(inventory).forEach(itemName => {
-        if (!fishTypes.includes(itemName) && itemName !== '낚싯대' && inventory[itemName]) {
-          hasItems = true;
-          const item = document.createElement('div');
-          item.className = 'inventory-item';
-          item.innerHTML = `<span>📦 ${itemName}</span><span>${inventory[itemName]}개</span>`;
-          inventoryContent.appendChild(item);
-        }
-      });
-      
-      // 아이템이 없는 경우 메시지 표시
-      if (!hasItems) {
-        const emptyMessage = document.createElement('div');
-        emptyMessage.textContent = '인벤토리가 비어있습니다.';
-        emptyMessage.style.textAlign = 'center';
-        emptyMessage.style.padding = '10px';
-        emptyMessage.style.color = '#888';
-        inventoryContent.appendChild(emptyMessage);
-      }
-      
-      // 모달 표시
-      inventoryModal.style.display = 'block';
     }
     
     // 인벤토리 모달 닫기 함수
@@ -897,12 +984,345 @@
       inventoryModal.style.display = 'none';
     }
     
-    // 모달 외부 클릭시 닫기
-    window.onclick = function(event) {
-      if (event.target === inventoryModal) {
-        closeInventoryModal();
+    // 낚시 쿨다운 시간을 악세서리에 따라 계산하는 함수
+    function calculateCooldownTime(accessory) {
+      switch(accessory) {
+        case "오래된반지": return 285000; // 4분 45초
+        case "은목걸이": return 270000; // 4분 30초
+        case "금귀걸이": return 255000; // 4분 15초
+        case "마법의펜던트": return 240000; // 4분
+        case "에메랄드브로치": return 225000; // 3분 45초
+        case "토파즈이어링": return 210000; // 3분 30초
+        case "자수정팔찌": return 195000; // 3분 15초
+        case "백금티아라": return 180000; // 3분
+        case "만드라고라허브": return 165000; // 2분 45초
+        case "에테르나무묘목": return 150000; // 2분 30초
+        case "몽마의조각상": return 135000; // 2분 15초
+        case "마카롱훈장": return 120000; // 2분
+        case "빛나는마력순환체": return 90000; // 1분 30초
+        default: return 300000; // 5분
       }
-    };
+    }
+    
+    // 낚시 스킬 레벨에 따른 물고기 범위 설명을 반환하는 함수
+    function getFishingSkillDescription(skillLevel) {
+      if (skillLevel <= 1) {
+        return "초보자 레벨: 기본 물고기만 낚을 수 있습니다. (더 높은 레벨의 낚시대 구매 시 스킬 상승)";
+      } else if (skillLevel === 2) {
+        return "입문자 레벨: 약간 더 좋은 물고기를 낚을 수 있습니다. (더 높은 레벨의 낚시대 구매 시 스킬 상승)";
+      } else if (skillLevel >= 3 && skillLevel <= 10) {
+        return "중급자 레벨: 중간 등급의 물고기를 낚을 수 있습니다. (더 높은 레벨의 낚시대 구매 시 스킬 상승)";
+      } else if (skillLevel >= 11 && skillLevel <= 20) {
+        return "고급자 레벨: 희귀한 물고기를 낚을 가능성이 있습니다. (더 높은 레벨의 낚시대 구매 시 스킬 상승)";
+      } else if (skillLevel >= 21 && skillLevel <= 26) {
+        return "전문가 레벨: 매우 희귀한 물고기를 낚을 확률이 있습니다. (더 높은 레벨의 낚시대 구매 시 스킬 상승)";
+      } else {
+        return "마스터 레벨: 전설급 물고기를 낚을 수 있습니다! (최고 레벨)";
+      }
+    }
+    
+    // 인벤토리 표시 업데이트
+    function updateInventoryDisplay() {
+      const inventoryContainer = document.getElementById('inventoryItems');
+      inventoryContainer.innerHTML = '';
+      
+      // 낚시 스킬 표시
+      if (currentUserData.fishingSkill !== undefined) {
+        const skillElement = document.createElement('div');
+        skillElement.className = 'inventory-skill';
+        
+        // 낚시 스킬 설명 추가
+        const skillDescription = getFishingSkillDescription(currentUserData.fishingSkill);
+        
+        skillElement.innerHTML = `
+          <div class="skill-info">
+            <span>🔱 낚시 스킬: ${currentUserData.fishingSkill} 레벨</span>
+            <span class="skill-description">${skillDescription}</span>
+          </div>
+        `;
+        inventoryContainer.appendChild(skillElement);
+      }
+      
+      // 장착된 낚싯대 확인 및 표시
+      let equippedRod = null;
+      for (const rod of rodNames) {
+        if (userInventory[`장착된 ${rod}`]) {
+          equippedRod = rod;
+          const rodElement = document.createElement('div');
+          rodElement.className = 'inventory-item equipped';
+          rodElement.innerHTML = `
+            <span>🎣 ${rod} (장착됨)</span>
+            <div class="item-actions">
+              <button class="unequip-btn" data-item="${rod}">해제</button>
+            </div>
+          `;
+          inventoryContainer.appendChild(rodElement);
+          break;
+        }
+      }
+      
+      // 장착된 액세서리 확인 및 표시
+      let equippedAccessory = null;
+      for (const accessory of accessoryNames) {
+        if (userInventory[`장착된 ${accessory}`]) {
+          equippedAccessory = accessory;
+          const accessoryElement = document.createElement('div');
+          accessoryElement.className = 'inventory-item equipped';
+          
+          // 쿨다운 시간 계산
+          const cooldownTime = calculateCooldownTime(accessory);
+          const cooldownMinutes = Math.floor(cooldownTime / 60000);
+          const cooldownSeconds = Math.floor((cooldownTime % 60000) / 1000);
+          
+          // 판매 보너스 계산
+          let bonusPercent = 0;
+          switch(accessory) {
+            case "오래된반지": bonusPercent = 5; break;
+            case "은목걸이": bonusPercent = 10; break;
+            case "금귀걸이": bonusPercent = 15; break;
+            case "마법의펜던트": bonusPercent = 20; break;
+            case "에메랄드브로치": bonusPercent = 25; break;
+            case "토파즈이어링": bonusPercent = 30; break;
+            case "자수정팔찌": bonusPercent = 35; break;
+            case "백금티아라": bonusPercent = 40; break;
+            case "만드라고라허브": bonusPercent = 45; break;
+            case "에테르나무묘목": bonusPercent = 50; break;
+            case "몽마의조각상": bonusPercent = 55; break;
+            case "마카롱훈장": bonusPercent = 60; break;
+            case "빛나는마력순환체": bonusPercent = 80; break;
+            default: bonusPercent = 0; break;
+          }
+          
+          accessoryElement.innerHTML = `
+            <span>💍 ${accessory} (장착됨)</span>
+            <span class="accessory-effect">낚시 쿨다운: ${cooldownMinutes}분 ${cooldownSeconds}초</span>
+            <span class="accessory-effect">판매 보너스: +${bonusPercent}%</span>
+            <div class="item-actions">
+              <button class="unequip-btn" data-item="${accessory}">해제</button>
+            </div>
+          `;
+          inventoryContainer.appendChild(accessoryElement);
+          break;
+        }
+      }
+      
+      // 나머지 인벤토리 아이템 표시
+      for (const item in userInventory) {
+        // 이미 장착된 아이템은 다시 표시하지 않음
+        if (item.startsWith('장착된 ')) continue;
+        if ((equippedRod === item && userInventory[item] === 0) || 
+            (equippedAccessory === item && userInventory[item] === 0)) continue;
+        
+        if (userInventory[item] > 0) {
+          const itemElement = document.createElement('div');
+          itemElement.className = 'inventory-item';
+          
+          // 아이템 종류에 따른 아이콘 추가 및 버튼 설정
+          let itemIcon = '📦';
+          let itemActions = '';
+          
+          if (rodNames.includes(item)) {
+            itemIcon = '🎣';
+            if (!equippedRod) {
+              itemActions = `<button class="equip-btn" data-item="${item}">장착</button>`;
+            }
+          } else if (accessoryNames.includes(item)) {
+            itemIcon = '💍';
+            if (!equippedAccessory) {
+              itemActions = `<button class="equip-btn" data-item="${item}">장착</button>`;
+            }
+          } else if (item !== '맨손' && item !== '없음' && !item.startsWith('장착된') && !rodNames.includes(item) && !accessoryNames.includes(item)) {
+            // 낚시대와 악세서리가 아닌 아이템은 모두 물고기로 간주하고 판매 버튼 추가
+            itemIcon = '🐟';
+            itemActions = `<button class="sell-btn" data-item="${item}">판매</button>`;
+          }
+          
+          itemElement.innerHTML = `
+            <span>${itemIcon} ${item} (${userInventory[item]}개)</span>
+            <div class="item-actions">
+              ${itemActions}
+            </div>
+          `;
+          inventoryContainer.appendChild(itemElement);
+        }
+      }
+      
+      // 인벤토리가 비어있는 경우
+      if (inventoryContainer.children.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'empty-inventory';
+        emptyMessage.textContent = '인벤토리가 비었습니다.';
+        inventoryContainer.appendChild(emptyMessage);
+      }
+      
+      // 장착 버튼 이벤트 리스너 추가
+      const equipButtons = document.querySelectorAll('.equip-btn');
+      equipButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const item = this.getAttribute('data-item');
+          equipItem(item);
+        });
+      });
+      
+      // 해제 버튼 이벤트 리스너 추가
+      const unequipButtons = document.querySelectorAll('.unequip-btn');
+      unequipButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const item = this.getAttribute('data-item');
+          unequipItem(item);
+        });
+      });
+      
+      // 판매 버튼 이벤트 리스너 추가
+      const sellButtons = document.querySelectorAll('.sell-btn');
+      sellButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const item = this.getAttribute('data-item');
+          sellItem(item);
+        });
+      });
+    }
+    
+    // 아이템 장착 함수
+    function equipItem(item) {
+      if (!isConnected) {
+        alert('서버에 연결되어 있지 않습니다.');
+        return;
+      }
+      
+      socket.send(JSON.stringify({
+        type: 'equipItem',
+        item: item
+      }));
+    }
+    
+    // 아이템 해제 함수
+    function unequipItem(item) {
+      if (!isConnected) {
+        alert('서버에 연결되어 있지 않습니다.');
+        return;
+      }
+      
+      socket.send(JSON.stringify({
+        type: 'unequipItem',
+        item: item
+      }));
+    }
+    
+    // 아이템 판매 함수
+    function sellItem(item) {
+      if (!isConnected) {
+        alert('서버에 연결되어 있지 않습니다.');
+        return;
+      }
+      
+      // 낚시대나 악세서리는 판매할 수 없음
+      if (rodNames.includes(item) || accessoryNames.includes(item)) {
+        alert('낚시대와 악세서리는 판매할 수 없습니다.');
+        return;
+      }
+      
+      const quantity = prompt(`${item}을(를) 몇 개 판매하시겠습니까?`, '1');
+      if (quantity === null) return;
+      
+      const amount = parseInt(quantity);
+      if (isNaN(amount) || amount <= 0) {
+        alert('올바른 수량을 입력해주세요.');
+        return;
+      }
+      
+      socket.send(JSON.stringify({
+        type: 'sellItem',
+        item: item,
+        quantity: amount
+      }));
+    }
+
+    function updateStoreList() {
+      const storeList = document.getElementById('storeList');
+      storeList.innerHTML = '';
+      
+      // 낚시대 추가
+      const rodSection = document.createElement('div');
+      rodSection.className = 'store-section';
+      rodSection.innerHTML = '<h3>🎣 낚시대 (구매 시 낚시 스킬 레벨이 자동으로 해당 레벨로 상승)</h3>';
+      storeList.appendChild(rodSection);
+      
+      // 낚시대 상품 생성 (레벨에 따른 비용 설정)
+      for (const [level, name] of Object.entries(rodNames)) {
+        if (level == 0) continue; // 맨손은 상점에서 판매하지 않음
+        
+        const rodLevel = parseInt(level);
+        const rodPrice = rodLevel * rodLevel * 5000;
+        
+        const rodItem = document.createElement('div');
+        rodItem.className = 'store-item';
+        rodItem.innerHTML = `
+          <span>${name} (레벨 ${rodLevel})</span>
+          <div class="item-details">
+            <span class="price">${formatPrice(rodPrice)}원</span>
+            <button class="buy-btn" data-item="${name}" data-price="${rodPrice}">구매</button>
+          </div>
+        `;
+        rodSection.appendChild(rodItem);
+      }
+      
+      // 악세사리 추가
+      const accessorySection = document.createElement('div');
+      accessorySection.className = 'store-section';
+      accessorySection.innerHTML = '<h3>💍 악세사리 (쿨다운 감소 및 판매 보너스)</h3>';
+      storeList.appendChild(accessorySection);
+      
+      // 악세사리 상품 생성 (레벨에 따른 비용 설정)
+      for (const [level, name] of Object.entries(accessoryNames)) {
+        if (level == 0) continue; // '없음'은 상점에서 판매하지 않음
+        
+        const accessoryLevel = parseInt(level);
+        const accessoryPrice = accessoryLevel * accessoryLevel * 8000;
+        
+        // 악세사리 효과 설명
+        let effectDesc = '';
+        if (name === "오래된반지") {
+          effectDesc = "낚시 쿨다운 -15초, 판매 보너스 +5%";
+        } else if (name === "은목걸이") {
+          effectDesc = "낚시 쿨다운 -30초, 판매 보너스 +10%";
+        } else if (name === "금귀걸이") {
+          effectDesc = "낚시 쿨다운 -45초, 판매 보너스 +15%";
+        } else if (name === "마법의펜던트") {
+          effectDesc = "낚시 쿨다운 -60초, 판매 보너스 +20%";
+        } else if (name === "에메랄드브로치") {
+          effectDesc = "낚시 쿨다운 -75초, 판매 보너스 +25%";
+        } else if (name === "토파즈이어링") {
+          effectDesc = "낚시 쿨다운 -90초, 판매 보너스 +30%";
+        } else if (name === "자수정팔찌") {
+          effectDesc = "낚시 쿨다운 -105초, 판매 보너스 +35%";
+        } else if (name === "백금티아라") {
+          effectDesc = "낚시 쿨다운 -120초, 판매 보너스 +40%";
+        } else if (name === "만드라고라허브") {
+          effectDesc = "낚시 쿨다운 -135초, 판매 보너스 +45%";
+        } else if (name === "에테르나무묘목") {
+          effectDesc = "낚시 쿨다운 -150초, 판매 보너스 +50%";
+        } else if (name === "몽마의조각상") {
+          effectDesc = "낚시 쿨다운 -165초, 판매 보너스 +55%";
+        } else if (name === "마카롱훈장") {
+          effectDesc = "낚시 쿨다운 -180초, 판매 보너스 +60%";
+        } else if (name === "빛나는마력순환체") {
+          effectDesc = "낚시 쿨다운 -210초, 판매 보너스 +80%";
+        }
+        
+        const accessoryItem = document.createElement('div');
+        accessoryItem.className = 'store-item';
+        accessoryItem.innerHTML = `
+          <span>${name}</span>
+          <div class="item-effect">${effectDesc}</div>
+          <div class="item-details">
+            <span class="price">${formatPrice(accessoryPrice)}원</span>
+            <button class="buy-btn" data-item="${name}" data-price="${accessoryPrice}">구매</button>
+          </div>
+        `;
+        accessorySection.appendChild(accessoryItem);
+      }
+    }
   </script>
 </body>
 </html>
