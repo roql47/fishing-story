@@ -259,7 +259,7 @@ async function saveDatabase() {
       savePromises.push(
         Inventory.findOneAndUpdate(
           { userId },
-          { userId, items },
+          { userId: userId, username: users.get(userId)?.username, items },
           { upsert: true }
         ).catch(e => console.error(`인벤토리 저장 에러 (${userId}):`, e))
       );
@@ -507,7 +507,7 @@ function broadcast(room, messageObj) {
 }
 
 // 채팅 로그 저장 함수 수정
-async function saveLog(room, content) {
+async function saveLog(room, content, userId, username) {
   // 로컬 파일 시스템에 저장
   try {
     const logDir = path.join(__dirname, 'chatlogs');
@@ -525,7 +525,7 @@ async function saveLog(room, content) {
   }
   
   try {
-    const chatLog = new ChatLog({ room, content });
+    const chatLog = new ChatLog({ userId, username, room, content });
     await chatLog.save();
   } catch (e) {
     console.error("채팅 로그 MongoDB 저장 에러:", e);
@@ -533,10 +533,10 @@ async function saveLog(room, content) {
 }
 
 // 채팅 로그 조회 API
-app.get('/api/chatlogs/:room', async (req, res) => {
+app.get('/api/chatlogs/:userId', async (req, res) => {
   try {
-    const { room } = req.params;
-    const logs = await ChatLog.find({ room }).sort({ timestamp: -1 }).limit(100);
+    const { userId } = req.params;
+    const logs = await ChatLog.find({ userId }).limit(100);
     res.json({ success: true, logs });
   } catch (e) {
     console.error('채팅 로그 조회 에러:', e);
@@ -640,7 +640,7 @@ app.post('/api/admin/fish', async (req, res) => {
     
     await Inventory.findOneAndUpdate(
       { userId: user.uuid },
-      { userId: user.uuid, items },
+      { userId: user.uuid, username: user.username, items },
       { upsert: true }
     );
     
@@ -705,7 +705,7 @@ app.post('/api/admin/rod', async (req, res) => {
     
     await Inventory.findOneAndUpdate(
       { userId: user.uuid },
-      { userId: user.uuid, items },
+      { userId: user.uuid, username: user.username, items },
       { upsert: true }
     );
     
@@ -773,7 +773,7 @@ app.post('/api/admin/accessory', async (req, res) => {
     
     await Inventory.findOneAndUpdate(
       { userId: user.uuid },
-      { userId: user.uuid, items },
+      { userId: user.uuid, username: user.username, items },
       { upsert: true }
     );
     
@@ -935,7 +935,7 @@ async function initializeServer() {
               
               // 구매 성공 메시지
               const result = `[${time}] 🎣 ${nickname}님이 ${item}을(를) 구매했습니다! (남은 골드: ${formatPrice(gold - price)}원)`;
-              saveLog(room, result);
+              saveLog(room, result, userId, nickname);
               ws.send(JSON.stringify({ type: 'chat', text: result }));
               
               // 전체 방에 알림
@@ -966,7 +966,7 @@ async function initializeServer() {
                 
                 // 구매 성공 메시지
                 const result = `[${time}] 💍 ${nickname}님이 ${item}을(를) 구매했습니다! (남은 골드: ${formatPrice(gold - price)}원)`;
-                saveLog(room, result);
+                saveLog(room, result, userId, nickname);
                 ws.send(JSON.stringify({ type: 'chat', text: result }));
                 
                 // 전체 방에 알림
@@ -1083,13 +1083,13 @@ async function initializeServer() {
               
               // 레벨업 메시지
               const levelUpMsg = `[${time}] 🎯 ${nickname}님의 낚시 스킬이 레벨 ${newSkillLevel}로 상승했습니다!`;
-              saveLog(room, levelUpMsg);
+              saveLog(room, levelUpMsg, userId, nickname);
               broadcast(room, { type: 'chat', text: levelUpMsg });
             }
             
             // 결과 메시지
             const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
-            saveLog(room, result);
+            saveLog(room, result, userId, nickname);
             broadcast(room, { type: 'chat', text: result });
             
             // 데이터베이스 저장
@@ -1145,7 +1145,7 @@ async function initializeServer() {
             
             result += `\n\n총 획득 골드: ${formatPrice(finalEarned)}원\n현재 골드: ${formatPrice(userGold.get(userId))}원`;
             
-            saveLog(room, result);
+            saveLog(room, result, userId, nickname);
             ws.send(JSON.stringify({ type: 'chat', text: result }));
             
             // 간소화된 알림을 다른 사용자에게 전송
@@ -1211,7 +1211,7 @@ async function initializeServer() {
             
             // 판매 결과 메시지
             const result = `[${time}] 💰 ${nickname}님이 ${fishName} ${quantity}마리를 판매하여 ${formatPrice(earned)}원을 획득했습니다! 현재 골드: ${formatPrice(userGold.get(userId))}원`;
-            saveLog(room, result);
+            saveLog(room, result, userId, nickname);
             broadcast(room, { type: 'chat', text: result });
             
             // 데이터베이스 저장
@@ -1272,7 +1272,7 @@ async function initializeServer() {
                 
                 // 결과 메시지
                 const result = `[${time}] 🔧 ${nickname}님이 ${fishName} ${quantity}마리를 분해하여 ${materialName} ${quantity}개를 얻었습니다!`;
-                saveLog(room, result);
+                saveLog(room, result, userId, nickname);
                 broadcast(room, { type: 'chat', text: result });
               }
               else if (option === '이벤트아이템') {
@@ -1296,7 +1296,7 @@ async function initializeServer() {
                 
                 // 결과 메시지
                 const result = `[${time}] 🔧 ${nickname}님이 ${fishName} ${quantity}마리를 분해하여 이벤트 아이템을 얻었습니다: ${resultItems}`;
-                saveLog(room, result);
+                saveLog(room, result, userId, nickname);
                 broadcast(room, { type: 'chat', text: result });
               }
               else {
@@ -1319,7 +1319,7 @@ async function initializeServer() {
               
               // 결과 메시지
               const result = `[${time}] 🔧 ${nickname}님이 ${fishName} ${quantity}마리를 분해하여 ${materialName} ${quantity}개를 얻었습니다!`;
-              saveLog(room, result);
+              saveLog(room, result, userId, nickname);
               broadcast(room, { type: 'chat', text: result });
             }
             
@@ -1386,7 +1386,7 @@ async function initializeServer() {
             
             result += `\n\n총 획득 골드: ${formatPrice(finalEarned)}원\n현재 골드: ${formatPrice(userGold.get(userId))}원`;
             
-            saveLog(room, result);
+            saveLog(room, result, userId, nickname);
             ws.send(JSON.stringify({ type: 'chat', text: result }));
             
             // 간소화된 알림을 다른 사용자에게 전송
@@ -1423,7 +1423,7 @@ async function initializeServer() {
 
           // 일반 채팅 메시지
           const formatted = `[${time}] ${nickname}: ${text}`;
-          saveLog(room, formatted).catch(e => console.error("일반 채팅 로그 저장 에러:", e));
+          saveLog(room, formatted, userId, nickname).catch(e => console.error("일반 채팅 로그 저장 에러:", e));
           broadcast(room, { type: 'chat', text: formatted });
         }
       });
