@@ -285,12 +285,23 @@ async function saveDatabase() {
         }
       }
       
+      // 사용자 정보 가져오기
+      let username = "";
+      try {
+        const user = await User.findOne({ uuid: userId });
+        if (user) {
+          username = user.username;
+        }
+      } catch (e) {
+        console.error(`사용자 조회 에러 (${userId}):`, e);
+      }
+      
       console.log(`인벤토리 저장 시도 (${userId}):`, Object.fromEntries(itemsMap));
       
       savePromises.push(
         Inventory.findOneAndUpdate(
           { userId },
-          { userId, items: itemsMap },
+          { userId, username, items: itemsMap },
           { upsert: true, new: true }
         ).catch(e => console.error(`인벤토리 저장 에러 (${userId}):`, e))
       );
@@ -317,61 +328,3 @@ async function saveDatabase() {
     console.error("데이터베이스 저장 에러:", e);
   }
 }
-
-// 유저 데이터베이스에서 기존 유저 데이터를 불러오기
-async function loadUsers() {
-  try {
-    const usersData = await User.find({});
-    const users = new Map();
-    
-    for (const user of usersData) {
-      users.set(user.username, {
-        password: user.password,
-        uuid: user.uuid
-      });
-    }
-    
-    console.log('유저 데이터베이스 로드 완료');
-    return users;
-  } catch (e) {
-    console.error("유저 데이터베이스 로드 에러:", e);
-    return new Map();
-  }
-}
-
-// 유저 데이터 저장
-async function saveUsers(users) {
-  try {
-    for (const [username, data] of users) {
-      await User.findOneAndUpdate(
-        { username },
-        { username, password: data.password, uuid: data.uuid },
-        { upsert: true }
-      );
-    }
-    console.log('유저 데이터베이스 저장 완료');
-  } catch (e) {
-    console.error("유저 데이터베이스 저장 에러:", e);
-  }
-}
-
-module.exports = {
-  inventories,
-  userGold,
-  equippedRod,
-  equippedAccessory,
-  rodEnhancement,
-  fishingSkills,
-  lastFishingTime,
-  pendingDecomposition,
-  formatPrice,
-  getTime,
-  autoEquip,
-  showInventory,
-  getRandomFish,
-  saveLog,
-  loadDatabase,
-  saveDatabase,
-  loadUsers,
-  saveUsers
-}; 
