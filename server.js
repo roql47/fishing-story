@@ -49,51 +49,98 @@ const users = new Map();
 
 // 물고기 종류 정보
 const fishTypes = [
-  { name: '타코문어', chance: 0.3, price: 300, material: "문어다리" },
-  { name: '풀고등어', chance: 0.2, price: 700, material: "고등어비늘" },
-  { name: '경단붕어', chance: 0.15, price: 1500, material: "당고" },
-  { name: '버터오징어', chance: 0.1, price: 8000, material: "버터조각" },
-  { name: '간장새우', chance: 0.08, price: 15000, material: "간장종지" },
-  { name: '물수수', chance: 0.05, price: 30000, material: "옥수수콘" },
-  { name: '정어리파이', chance: 0.04, price: 40000, material: "버터" },
-  { name: '얼음상어', chance: 0.03, price: 50000, material: "얼음조각" },
-  { name: '스퀄스퀴드', chance: 0.02, price: 60000, material: "오징어먹물" },
-  { name: '백년송거북', chance: 0.01, price: 100000, material: "백년송" },
-  { name: '고스피쉬', chance: 0.008, price: 150000, material: "후춧가루" },
-  { name: '유령치', chance: 0.005, price: 230000, material: "석화" },
-  { name: '바이트독', chance: 0.003, price: 470000, material: "핫소스" },
-  { name: '호박고래', chance: 0.002, price: 700000, material: "펌킨조각" },
-  { name: '바이킹조개', chance: 0.001, price: 1250000, material: "꽃술" },
-  { name: '천사해파리', chance: 0.0008, price: 2440000, material: "프레첼" },
-  { name: '악마복어', chance: 0.0005, price: 4100000, material: "베놈" },
-  { name: '칠성장어', chance: 0.0003, price: 6600000, material: "장어꼬리" },
-  { name: '닥터블랙', chance: 0.0002, price: 9320000, material: "아인스바인" },
-  { name: '해룡', chance: 0.0001, price: 14400000, material: "헤븐즈서펀트" },
-  { name: '메카핫킹크랩', chance: 0.00008, price: 27950000, material: "집게다리" },
-  { name: '램프리', chance: 0.00006, price: 46400000, material: "이즈니버터" },
-  { name: '마지막잎새', chance: 0.00004, price: 76500000, material: "라벤더오일" },
-  { name: '아이스브리더', chance: 0.00003, price: 131200000, material: "샤베트" },
-  { name: '해신', chance: 0.00002, price: 288000000, material: "마법의정수" },
-  { name: '핑키피쉬', chance: 0.000015, price: 418600000, material: "휘핑크림" },
-  { name: '콘토퍼스', chance: 0.00001, price: 731560000, material: "와플리머신" },
-  { name: '딥원', chance: 0.000008, price: 1026400000, material: "베르쥬스" },
-  { name: '큐틀루', chance: 0.000006, price: 1477500000, material: "안쵸비" },
-  { name: '꽃술나리', chance: 0.000004, price: 2092000000, material: "핑크멜로우" },
-  { name: '다무스', chance: 0.000003, price: 2633200000, material: "와일드갈릭" },
-  { name: '수호자', chance: 0.000002, price: 3427900000, material: "그루누아" },
-  { name: '태양가사리', chance: 0.0000015, price: 6483100000, material: "시더플랭크" },
-  { name: '빅파더펭귄', chance: 0.000001, price: 9887600000, material: "세비체" },
-  { name: '크레인터틀', chance: 0.0000008, price: 15124000000, material: "타파스" },
-  { name: 'CSP-765 조립식생선', chance: 0.0000006, price: 19580000000, material: "트러플리소토" },
-  { name: '데드케이지', chance: 0.0000004, price: 25420000000, material: "캐비아소스" },
-  { name: '다크암모나이트', chance: 0.0000003, price: 31780000000, material: "푸아그라에스푸마" },
-  { name: '조가비여인', chance: 0.0000002, price: 38240000000, material: "샴페인젤리" },
-  { name: '10개통고래', chance: 0.0000001, price: 45360000000, material: "금박마카롱" },
-  { name: '스타피쉬', chance: 0.005, price: 100, material: "별조각" }
+  { name: '타코문어', price: 300, material: "문어다리" },
+  { name: '풀고등어', price: 700, material: "고등어비늘" },
+  { name: '경단붕어', price: 1500, material: "당고" },
+  { name: '버터오징어', price: 8000, material: "버터조각" },
+  { name: '간장새우', price: 15000, material: "간장종지" },
+  { name: '물수수', price: 30000, material: "옥수수콘" },
+  { name: '정어리파이', price: 40000, material: "버터" },
+  { name: '얼음상어', price: 50000, material: "얼음조각" },
+  { name: '스퀄스퀴드', price: 60000, material: "오징어먹물" },
+  { name: '백년송거북', price: 100000, material: "백년송" },
+  { name: '고스피쉬', price: 150000, material: "후춧가루" },
+  { name: '유령치', price: 230000, material: "석화" },
+  { name: '바이트독', price: 470000, material: "핫소스" },
+  { name: '호박고래', price: 700000, material: "펌킨조각" },
+  { name: '바이킹조개', price: 1250000, material: "꽃술" },
+  { name: '천사해파리', price: 2440000, material: "프레첼" },
+  { name: '악마복어', price: 4100000, material: "베놈" },
+  { name: '칠성장어', price: 6600000, material: "장어꼬리" },
+  { name: '닥터블랙', price: 9320000, material: "아인스바인" },
+  { name: '해룡', price: 14400000, material: "헤븐즈서펀트" },
+  { name: '메카핫킹크랩', price: 27950000, material: "집게다리" },
+  { name: '램프리', price: 46400000, material: "이즈니버터" },
+  { name: '마지막잎새', price: 76500000, material: "라벤더오일" },
+  { name: '아이스브리더', price: 131200000, material: "샤베트" },
+  { name: '해신', price: 288000000, material: "마법의정수" },
+  { name: '핑키피쉬', price: 418600000, material: "휘핑크림" },
+  { name: '콘토퍼스', price: 731560000, material: "와플리머신" },
+  { name: '딥원', price: 1026400000, material: "베르쥬스" },
+  { name: '큐틀루', price: 1477500000, material: "안쵸비" },
+  { name: '꽃술나리', price: 2092000000, material: "핑크멜로우" },
+  { name: '다무스', price: 2633200000, material: "와일드갈릭" },
+  { name: '수호자', price: 3427900000, material: "그루누아" },
+  { name: '태양가사리', price: 6483100000, material: "시더플랭크" },
+  { name: '빅파더펭귄', price: 9887600000, material: "세비체" },
+  { name: '크레인터틀', price: 15124000000, material: "타파스" },
+  { name: 'CSP-765 조립식생선', price: 19580000000, material: "트러플리소토" },
+  { name: '데드케이지', price: 25420000000, material: "캐비아소스" },
+  { name: '다크암모나이트', price: 31780000000, material: "푸아그라에스푸마" },
+  { name: '조가비여인', price: 38240000000, material: "샴페인젤리" },
+  { name: '10개통고래', price: 45360000000, material: "금박마카롱" },
+  { name: '스타피쉬', price: 100, material: "별조각" }
 ];
 
 // 낚시 확률 배열 (물고기 선택 시 사용)
 const catchProbabilities = [38.5, 25, 15, 8, 5, 3, 2, 1, 0.7, 0.3, 1];
+
+// 낚시대 종류 및 가격
+const rodData = {
+  "맨손": { price: 0, requires: null, fishingSkill: 0 },
+  "낡은낚시대": { price: 10000, requires: null, fishingSkill: 1 },
+  "일반낚시대": { price: 60000, requires: "낡은낚시대", fishingSkill: 2 },
+  "단단한낚시대": { price: 140000, requires: "일반낚시대", fishingSkill: 3 },
+  "은낚시대": { price: 370000, requires: "단단한낚시대", fishingSkill: 4 },
+  "금낚시대": { price: 820000, requires: "은낚시대", fishingSkill: 5 },
+  "강철낚시대": { price: 2390000, requires: "금낚시대", fishingSkill: 6 },
+  "사파이어낚시대": { price: 6100000, requires: "강철낚시대", fishingSkill: 7 },
+  "루비낚시대": { price: 15000000, requires: "사파이어낚시대", fishingSkill: 8 },
+  "다이아몬드낚시대": { price: 45000000, requires: "루비낚시대", fishingSkill: 9 },
+  "레드다이아몬드낚시대": { price: 100000000, requires: "다이아몬드낚시대", fishingSkill: 10 },
+  "벚꽃낚시대": { price: 300000000, requires: "레드다이아몬드낚시대", fishingSkill: 11 },
+  "꽃망울낚시대": { price: 732000000, requires: "벚꽃낚시대", fishingSkill: 12 },
+  "호롱불낚시대": { price: 1980000000, requires: "꽃망울낚시대", fishingSkill: 13 },
+  "산호등낚시대": { price: 4300000000, requires: "호롱불낚시대", fishingSkill: 14 },
+  "피크닉": { price: 8800000000, requires: "산호등낚시대", fishingSkill: 15 },
+  "마녀빗자루": { price: 25000000000, requires: "피크닉", fishingSkill: 16 },
+  "에테르낚시대": { price: 64800000000, requires: "마녀빗자루", fishingSkill: 17 },
+  "별조각낚시대": { price: 147600000000, requires: "에테르낚시대", fishingSkill: 18 },
+  "여우꼬리낚시대": { price: 320000000000, requires: "별조각낚시대", fishingSkill: 19 },
+  "초콜릿롤낚시대": { price: 780000000000, requires: "여우꼬리낚시대", fishingSkill: 20 },
+  "호박유령낚시대": { price: 2800000000000, requires: "초콜릿롤낚시대", fishingSkill: 21 },
+  "핑크버니낚시대": { price: 6100000000000, requires: "호박유령낚시대", fishingSkill: 22 },
+  "할로우낚시대": { price: 15100000000000, requires: "핑크버니낚시대", fishingSkill: 23 },
+  "여우불낚시대": { price: 40400000000000, requires: "할로우낚시대", fishingSkill: 24 }
+};
+
+// 악세서리 데이터
+const accessoryData = {
+  "없음": { price: 0, requires: null, fishingSkill: 0 },
+  "오래된반지": { price: 8000, requires: null, fishingSkill: 0, cooldownReduction: 15000, sellBonus: 0.05 },
+  "은목걸이": { price: 32000, requires: "오래된반지", fishingSkill: 0, cooldownReduction: 30000, sellBonus: 0.1 },
+  "금귀걸이": { price: 72000, requires: "은목걸이", fishingSkill: 0, cooldownReduction: 45000, sellBonus: 0.15 },
+  "마법의펜던트": { price: 128000, requires: "금귀걸이", fishingSkill: 0, cooldownReduction: 60000, sellBonus: 0.2 },
+  "에메랄드브로치": { price: 200000, requires: "마법의펜던트", fishingSkill: 0, cooldownReduction: 75000, sellBonus: 0.25 },
+  "토파즈이어링": { price: 360000, requires: "에메랄드브로치", fishingSkill: 0, cooldownReduction: 90000, sellBonus: 0.3 },
+  "자수정팔찌": { price: 640000, requires: "토파즈이어링", fishingSkill: 0, cooldownReduction: 105000, sellBonus: 0.35 },
+  "백금티아라": { price: 980000, requires: "자수정팔찌", fishingSkill: 0, cooldownReduction: 120000, sellBonus: 0.4 },
+  "만드라고라허브": { price: 1400000, requires: "백금티아라", fishingSkill: 0, cooldownReduction: 135000, sellBonus: 0.45 },
+  "에테르나무묘목": { price: 2000000, requires: "만드라고라허브", fishingSkill: 0, cooldownReduction: 150000, sellBonus: 0.5 },
+  "몽마의조각상": { price: 3800000, requires: "에테르나무묘목", fishingSkill: 0, cooldownReduction: 165000, sellBonus: 0.55 },
+  "마카롱훈장": { price: 6400000, requires: "몽마의조각상", fishingSkill: 0, cooldownReduction: 180000, sellBonus: 0.6 },
+  "빛나는마력순환체": { price: 10000000, requires: "마카롱훈장", fishingSkill: 0, cooldownReduction: 210000, sellBonus: 0.8 }
+};
 
 // 포맷 가격 유틸리티 함수
 function formatPrice(price) {
@@ -283,52 +330,6 @@ async function saveDatabase() {
   }
 }
 
-// 낚시대 및 악세사리 정보
-const rodNames = {
-  0: "맨손",
-  1: "낡은낚시대",
-  2: "일반낚시대",
-  3: "단단한낚시대",
-  4: "은낚시대",
-  5: "금낚시대",
-  6: "강철낚시대",
-  7: "사파이어낚시대",
-  8: "루비낚시대",
-  9: "다이아몬드낚시대",
-  10: "레드다이아몬드낚시대",
-  11: "벚꽃낚시대",
-  12: "꽃망울낚시대",
-  13: "호롱불낚시대",
-  14: "산호등낚시대",
-  15: "피크닉",
-  16: "마녀빗자루",
-  17: "에테르낚시대",
-  18: "별조각낚시대",
-  19: "여우꼬리낚시대",
-  20: "초콜릿롤낚시대",
-  21: "호박유령낚시대",
-  22: "핑크버니낚시대",
-  23: "할로우낚시대",
-  24: "여우불낚시대"
-};
-
-const accessoryNames = {
-  0: "없음",
-  1: "오래된반지",
-  2: "은목걸이",
-  3: "금귀걸이",
-  4: "마법의펜던트",
-  5: "에메랄드브로치",
-  6: "토파즈이어링",
-  7: "자수정팔찌",
-  8: "백금티아라",
-  9: "만드라고라허브",
-  10: "에테르나무묘목",
-  11: "몽마의조각상",
-  12: "마카롱훈장",
-  13: "빛나는마력순환체"
-};
-
 // 사용자별 장비 데이터
 const equippedRod = new Map();        // 장착된 낚시대
 const equippedAccessory = new Map();  // 장착된 악세사리
@@ -344,14 +345,14 @@ function autoEquip(userId) {
   
   // 낚싯대 자동 장착 (가장 높은 등급 낚싯대)
   let bestRodLevel = 0;
-  let bestRod = rodNames[0]; // 기본값: 맨손
+  let bestRod = "맨손"; // 기본값: 맨손
   
   for (const itemName in userInventory) {
     if (userInventory[itemName] > 0) {
-      for (const rodLevel in rodNames) {
-        if (rodNames[rodLevel] === itemName && parseInt(rodLevel) > bestRodLevel) {
-          bestRodLevel = parseInt(rodLevel);
-          bestRod = itemName;
+      for (const rod in rodData) {
+        if (rodData[rod].requires === null && rodData[rod].fishingSkill > bestRodLevel) {
+          bestRodLevel = rodData[rod].fishingSkill;
+          bestRod = rod;
         }
       }
     }
@@ -361,14 +362,14 @@ function autoEquip(userId) {
   
   // 악세사리 자동 장착 (가장 높은 등급 악세사리)
   let bestAccessoryLevel = 0;
-  let bestAccessory = accessoryNames[0]; // 기본값: 없음
+  let bestAccessory = "없음"; // 기본값: 없음
   
   for (const itemName in userInventory) {
     if (userInventory[itemName] > 0) {
-      for (const accessoryLevel in accessoryNames) {
-        if (accessoryNames[accessoryLevel] === itemName && parseInt(accessoryLevel) > bestAccessoryLevel) {
-          bestAccessoryLevel = parseInt(accessoryLevel);
-          bestAccessory = itemName;
+      for (const accessory in accessoryData) {
+        if (accessoryData[accessory].requires === null && accessoryData[accessory].fishingSkill > bestAccessoryLevel) {
+          bestAccessoryLevel = accessoryData[accessory].fishingSkill;
+          bestAccessory = accessory;
         }
       }
     }
@@ -384,8 +385,8 @@ function showInventory(userId, nickname) {
   
   const userInventory = inventories.get(userId) || {};
   const gold = userGold.get(userId) || 0;
-  const rod = equippedRod.get(userId) || rodNames[0];
-  const accessory = equippedAccessory.get(userId) || accessoryNames[0];
+  const rod = equippedRod.get(userId) || "맨손";
+  const accessory = equippedAccessory.get(userId) || "없음";
   const enhancement = rodEnhancement.get(userId) || 0;
   
   let rodDisplay = rod;
@@ -413,8 +414,8 @@ function showInventory(userId, nickname) {
     
     // 낚시대 또는 악세사리인지 확인
     let isEquipment = false;
-    for (const key in rodNames) {
-      if (rodNames[key] === itemName) {
+    for (const key in rodData) {
+      if (rodData[key].fishingSkill > 0 && key === itemName) {
         isEquipment = true;
         equipment.push({ name: itemName, quantity: userInventory[itemName], type: "rod" });
         break;
@@ -422,8 +423,8 @@ function showInventory(userId, nickname) {
     }
     
     if (!isEquipment) {
-      for (const key in accessoryNames) {
-        if (accessoryNames[key] === itemName) {
+      for (const key in accessoryData) {
+        if (accessoryData[key].fishingSkill > 0 && key === itemName) {
           isEquipment = true;
           equipment.push({ name: itemName, quantity: userInventory[itemName], type: "accessory" });
           break;
@@ -670,8 +671,8 @@ app.post('/api/admin/rod', async (req, res) => {
   
   // 낚시대 확인
   let validRod = false;
-  for (const key in rodNames) {
-    if (rodNames[key] === rodName) {
+  for (const key in rodData) {
+    if (rodData[key].fishingSkill > 0 && key === rodName) {
       validRod = true;
       break;
     }
@@ -738,8 +739,8 @@ app.post('/api/admin/accessory', async (req, res) => {
   
   // 악세사리 확인
   let validAccessory = false;
-  for (const key in accessoryNames) {
-    if (accessoryNames[key] === accessoryName) {
+  for (const key in accessoryData) {
+    if (accessoryData[key].fishingSkill > 0 && key === accessoryName) {
       validAccessory = true;
       break;
     }
@@ -804,15 +805,15 @@ function handleSellFish(ws, info, match, time) {
   let isRod = false;
   let isAccessory = false;
   
-  for (const key in rodNames) {
-    if (rodNames[key] === fishName) {
+  for (const key in rodData) {
+    if (rodData[key].fishingSkill > 0 && key === fishName) {
       isRod = true;
       break;
     }
   }
   
-  for (const key in accessoryNames) {
-    if (accessoryNames[key] === fishName) {
+  for (const key in accessoryData) {
+    if (accessoryData[key].fishingSkill > 0 && key === fishName) {
       isAccessory = true;
       break;
     }
@@ -847,24 +848,11 @@ function handleSellFish(ws, info, match, time) {
   }
   
   // 판매 금액 계산 (악세사리 보너스 적용)
-  const accessory = equippedAccessory.get(userId) || accessoryNames[0];
+  const accessory = equippedAccessory.get(userId) || "없음";
   let bonusMultiplier = 1.0;
   
-  switch(accessory) {
-    case "오래된반지": bonusMultiplier = 1.05; break;
-    case "은목걸이": bonusMultiplier = 1.10; break;
-    case "금귀걸이": bonusMultiplier = 1.15; break;
-    case "마법의펜던트": bonusMultiplier = 1.20; break;
-    case "에메랄드브로치": bonusMultiplier = 1.25; break;
-    case "토파즈이어링": bonusMultiplier = 1.30; break;
-    case "자수정팔찌": bonusMultiplier = 1.35; break;
-    case "백금티아라": bonusMultiplier = 1.40; break;
-    case "만드라고라허브": bonusMultiplier = 1.45; break;
-    case "에테르나무묘목": bonusMultiplier = 1.50; break;
-    case "몽마의조각상": bonusMultiplier = 1.55; break;
-    case "마카롱훈장": bonusMultiplier = 1.60; break;
-    case "빛나는마력순환체": bonusMultiplier = 1.80; break;
-    default: bonusMultiplier = 1.0; break;
+  if (accessory !== "없음") {
+    bonusMultiplier = 1.0 + accessoryData[accessory].sellBonus;
   }
   
   const earned = Math.floor(fish.price * quantity * bonusMultiplier);
@@ -894,24 +882,11 @@ function handleSellAll(ws, info, time) {
   const soldFish = [];
   
   // 악세서리 보너스 계산
-  const accessory = equippedAccessory.get(userId) || accessoryNames[0];
+  const accessory = equippedAccessory.get(userId) || "없음";
   let bonusMultiplier = 1.0;
   
-  switch(accessory) {
-    case "오래된반지": bonusMultiplier = 1.05; break;
-    case "은목걸이": bonusMultiplier = 1.10; break;
-    case "금귀걸이": bonusMultiplier = 1.15; break;
-    case "마법의펜던트": bonusMultiplier = 1.20; break;
-    case "에메랄드브로치": bonusMultiplier = 1.25; break;
-    case "토파즈이어링": bonusMultiplier = 1.30; break;
-    case "자수정팔찌": bonusMultiplier = 1.35; break;
-    case "백금티아라": bonusMultiplier = 1.40; break;
-    case "만드라고라허브": bonusMultiplier = 1.45; break;
-    case "에테르나무묘목": bonusMultiplier = 1.50; break;
-    case "몽마의조각상": bonusMultiplier = 1.55; break;
-    case "마카롱훈장": bonusMultiplier = 1.60; break;
-    case "빛나는마력순환체": bonusMultiplier = 1.80; break;
-    default: bonusMultiplier = 1.0; break;
+  if (accessory !== "없음") {
+    bonusMultiplier = 1.0 + accessoryData[accessory].sellBonus;
   }
   
   // 낚시대와 악세서리를 제외한 물고기만 판매
@@ -920,8 +895,8 @@ function handleSellAll(ws, info, time) {
     let isEquipment = false;
     
     // 낚시대 확인
-    for (const key in rodNames) {
-      if (rodNames[key] === itemName) {
+    for (const key in rodData) {
+      if (rodData[key].fishingSkill > 0 && key === itemName) {
         isEquipment = true;
         break;
       }
@@ -929,8 +904,8 @@ function handleSellAll(ws, info, time) {
     
     // 악세서리 확인
     if (!isEquipment) {
-      for (const key in accessoryNames) {
-        if (accessoryNames[key] === itemName) {
+      for (const key in accessoryData) {
+        if (accessoryData[key].fishingSkill > 0 && key === itemName) {
           isEquipment = true;
           break;
         }
@@ -1104,7 +1079,7 @@ async function initializeServer() {
             let rodLevel = -1;
             
             // 낚시대 정보 확인
-            for (const [level, name] of Object.entries(rodNames)) {
+            for (const [level, name] of Object.entries(rodData)) {
               if (name === itemName) {
                 isRod = true;
                 rodLevel = parseInt(level);
@@ -1115,7 +1090,7 @@ async function initializeServer() {
             // 악세서리 정보 확인
             let isAccessory = false;
             if (!isRod) {
-              for (const [level, name] of Object.entries(accessoryNames)) {
+              for (const [level, name] of Object.entries(accessoryData)) {
                 if (name === itemName) {
                   isAccessory = true;
                   break;
@@ -1139,7 +1114,7 @@ async function initializeServer() {
             } else {
               // 악세서리 가격 (인덱스에 따라 계산)
               let accessoryLevel = 0;
-              for (const [level, name] of Object.entries(accessoryNames)) {
+              for (const [level, name] of Object.entries(accessoryData)) {
                 if (name === itemName) {
                   accessoryLevel = parseInt(level);
                   break;
@@ -1213,23 +1188,10 @@ async function initializeServer() {
             
             // 낚시 쿨다운 계산 (악세사리에 따른 쿨다운 감소)
             let cooldownTime = 300000; // 기본 5분
-            const accessory = equippedAccessory.get(userId) || accessoryNames[0];
+            const accessory = equippedAccessory.get(userId) || "없음";
             
-            switch(accessory) {
-              case "오래된반지": cooldownTime = 285000; break; // 4분 45초
-              case "은목걸이": cooldownTime = 270000; break; // 4분 30초
-              case "금귀걸이": cooldownTime = 255000; break; // 4분 15초
-              case "마법의펜던트": cooldownTime = 240000; break; // 4분
-              case "에메랄드브로치": cooldownTime = 225000; break; // 3분 45초
-              case "토파즈이어링": cooldownTime = 210000; break; // 3분 30초
-              case "자수정팔찌": cooldownTime = 195000; break; // 3분 15초
-              case "백금티아라": cooldownTime = 180000; break; // 3분
-              case "만드라고라허브": cooldownTime = 165000; break; // 2분 45초
-              case "에테르나무묘목": cooldownTime = 150000; break; // 2분 30초
-              case "몽마의조각상": cooldownTime = 135000; break; // 2분 15초
-              case "마카롱훈장": cooldownTime = 120000; break; // 2분
-              case "빛나는마력순환체": cooldownTime = 90000; break; // 1분 30초
-              default: cooldownTime = 300000; break; // 5분
+            if (accessory !== "없음") {
+              cooldownTime = 300000 - accessoryData[accessory].cooldownReduction;
             }
             
             if (lastFishingTime.has(userId) && (currentTime - lastFishingTime.get(userId)) < cooldownTime) {
@@ -1321,24 +1283,11 @@ async function initializeServer() {
             }
             
             // 판매 금액 계산 (악세사리 보너스 적용)
-            const accessory = equippedAccessory.get(userId) || accessoryNames[0];
+            const accessory = equippedAccessory.get(userId) || "없음";
             let bonusMultiplier = 1.0;
             
-            switch(accessory) {
-              case "오래된반지": bonusMultiplier = 1.05; break;
-              case "은목걸이": bonusMultiplier = 1.10; break;
-              case "금귀걸이": bonusMultiplier = 1.15; break;
-              case "마법의펜던트": bonusMultiplier = 1.20; break;
-              case "에메랄드브로치": bonusMultiplier = 1.25; break;
-              case "토파즈이어링": bonusMultiplier = 1.30; break;
-              case "자수정팔찌": bonusMultiplier = 1.35; break;
-              case "백금티아라": bonusMultiplier = 1.40; break;
-              case "만드라고라허브": bonusMultiplier = 1.45; break;
-              case "에테르나무묘목": bonusMultiplier = 1.50; break;
-              case "몽마의조각상": bonusMultiplier = 1.55; break;
-              case "마카롱훈장": bonusMultiplier = 1.60; break;
-              case "빛나는마력순환체": bonusMultiplier = 1.80; break;
-              default: bonusMultiplier = 1.0; break;
+            if (accessory !== "없음") {
+              bonusMultiplier = 1.0 + accessoryData[accessory].sellBonus;
             }
             
             const finalEarned = Math.floor(earned * bonusMultiplier);
