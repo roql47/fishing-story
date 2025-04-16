@@ -98,7 +98,8 @@ function showInventory(userId, nickname) {
   let equipment = [];
   
   for (const itemName in userInventory) {
-    if (userInventory[itemName] <= 0) continue;
+    // 몽구스 내부 객체 필터링
+    if (itemName.startsWith('$__') || userInventory[itemName] <= 0) continue;
     
     // 낚시대 또는 악세사리인지 확인
     let isEquipment = false;
