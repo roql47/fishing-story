@@ -799,94 +799,112 @@
 
     // 연결 함수
     function connect(nickname, room) {
-      // 현재 호스트 기반으로 WebSocket URL 생성
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const url = `${protocol}//${host}`;
-      console.log("연결 시도:", url);
-      
-      socket = new WebSocket(url);
-      
-      socket.addEventListener('open', function(event) {
-        console.log("WebSocket 연결 성공!");
-        // UUID가 있으면 함께 전송
-        socket.send(JSON.stringify({ 
-          type: 'join', 
-          nickname, 
-          room,
-          uuid: currentUser.uuid 
-        }));
+      try {
+        // 현재 호스트 기반으로 WebSocket URL 생성
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host || location.hostname + (location.port ? ':' + location.port : '');
+        const url = `${protocol}//${host}`;
+        console.log("WebSocket 연결 시도:", url, "닉네임:", nickname, "방:", room);
         
-        statusText.innerHTML = '서버 연결 상태: <span style="color:green;">연결됨</span>';
-        form.style.display = 'flex';
-        input.focus();
-        isConnected = true;
-      });
+        // WebSocket 상태 업데이트
+        statusText.innerHTML = '서버 연결 상태: <span style="color:orange;">연결 중...</span>';
+        
+        // 연결 생성
+        socket = new WebSocket(url);
+        
+        // 연결 이벤트 핸들러
+        socket.addEventListener('open', function(event) {
+          console.log("WebSocket 연결 성공!");
+          
+          // 연결 후 바로 join 메시지 전송
+          console.log("입장 메시지 전송:", { type: 'join', nickname, room, uuid: currentUser.uuid });
+          socket.send(JSON.stringify({ 
+            type: 'join', 
+            nickname, 
+            room,
+            uuid: currentUser.uuid 
+          }));
+          
+          // UI 업데이트
+          statusText.innerHTML = '서버 연결 상태: <span style="color:green;">연결됨</span>';
+          form.style.display = 'flex';
+          input.focus();
+          isConnected = true;
+          
+          // 접속 성공 메시지
+          addMessage(`서버에 연결되었습니다. 방 "${room}"에 입장합니다.`);
+        });
+        
+        socket.addEventListener('error', function(event) {
+          console.error("WebSocket 오류 발생:", event);
+          statusText.innerHTML = '서버 연결 상태: <span style="color:red;">연결 오류</span>';
+          isConnected = false;
+          alert('서버 연결에 실패했습니다. 페이지를 새로고침 하거나 나중에 다시 시도해주세요.');
+        });
 
-      socket.addEventListener('error', function(event) {
-        console.error("WebSocket 오류 발생:", event);
-        statusText.innerHTML = '서버 연결 상태: <span style="color:red;">연결 오류</span>';
-        isConnected = false;
-        alert('서버 연결에 실패했습니다. 페이지를 새로고침 하거나 나중에 다시 시도해주세요.');
-      });
+        socket.onmessage = (event) => {
+          let data;
+          try {
+            data = JSON.parse(event.data);
+          } catch (e) {
+            data = { type: 'chat', text: event.data };
+          }
+          if (data.type === 'join') {
+            addMessage(data, 'join');
+          } else if (data.type === 'leave') {
+            addMessage(data, 'leave');
+          } else if (data.type === 'userInfo') {
+            // 인벤토리 정보 모달로 표시
+            showInventoryModal(
+              currentUserData.find(user => user.userId === data.userId)?.nickname || '알 수 없음',
+              data.inventory || {},
+              data.gold || 0,
+              data.fishingSkill || 0
+            );
+          } else if (data.type === 'myInfo') {
+            // 나의 정보 업데이트
+            userInventory = data.inventory || {};
+            userGold = data.gold || 0;
+            currentUserData.fishingSkill = data.fishingSkill || 0;
+            document.getElementById('goldAmount').textContent = userGold;
+            updateInventoryDisplay();
+          } else if (data.type === 'user_list') {
+            // 기존 사용자 목록을 처리
+            currentUserData = data.users;
+            updateUserList();
+          } else if (data.type === 'full_user_list') {
+            // 전체 사용자 목록으로 업데이트
+            currentUserData = data.users;
+            updateUserList();
+          } else if (data.type === 'shopItems') {
+            // 상점 아이템 정보 갱신
+            updateStoreItemsFromServer(data.rods, data.accessories);
+          } else {
+            addMessage(data);
+          }
+        };
 
-      socket.onmessage = (event) => {
-        let data;
-        try {
-          data = JSON.parse(event.data);
-        } catch (e) {
-          data = { type: 'chat', text: event.data };
-        }
-        if (data.type === 'join') {
-          addMessage(data, 'join');
-        } else if (data.type === 'leave') {
-          addMessage(data, 'leave');
-        } else if (data.type === 'userInfo') {
-          // 인벤토리 정보 모달로 표시
-          showInventoryModal(
-            currentUserData.find(user => user.userId === data.userId)?.nickname || '알 수 없음',
-            data.inventory || {},
-            data.gold || 0,
-            data.fishingSkill || 0
-          );
-        } else if (data.type === 'myInfo') {
-          // 나의 정보 업데이트
-          userInventory = data.inventory || {};
-          userGold = data.gold || 0;
-          currentUserData.fishingSkill = data.fishingSkill || 0;
-          document.getElementById('goldAmount').textContent = userGold;
-          updateInventoryDisplay();
-        } else if (data.type === 'user_list') {
-          // 기존 사용자 목록을 처리
-          currentUserData = data.users;
+        socket.onclose = () => {
+          statusText.innerHTML = '서버 연결 상태: <span style="color:red;">연결 종료</span>';
+          addMessage('❌ 서버 연결 종료됨');
+          form.style.display = 'none';
+          currentUsers.clear();
           updateUserList();
-        } else if (data.type === 'full_user_list') {
-          // 전체 사용자 목록으로 업데이트
-          currentUserData = data.users;
-          updateUserList();
-        } else if (data.type === 'shopItems') {
-          // 상점 아이템 정보 갱신
-          updateStoreItemsFromServer(data.rods, data.accessories);
-        } else {
-          addMessage(data);
-        }
-      };
+          isConnected = false;
+        };
 
-      socket.onclose = () => {
-        statusText.innerHTML = '서버 연결 상태: <span style="color:red;">연결 종료</span>';
-        addMessage('❌ 서버 연결 종료됨');
-        form.style.display = 'none';
-        currentUsers.clear();
-        updateUserList();
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          if (!input.value.trim()) return;
+          socket.send(JSON.stringify({ type: 'message', text: input.value.trim() }));
+          input.value = '';
+        };
+      } catch (error) {
+        console.error("WebSocket 연결 시도 중 예외 발생:", error);
+        statusText.innerHTML = '서버 연결 상태: <span style="color:red;">연결 실패</span>';
         isConnected = false;
-      };
-
-      form.onsubmit = (e) => {
-        e.preventDefault();
-        if (!input.value.trim()) return;
-        socket.send(JSON.stringify({ type: 'message', text: input.value.trim() }));
-        input.value = '';
-      };
+        alert('서버 연결에 실패했습니다: ' + error.message);
+      }
     }
 
     joinBtn.onclick = () => {
