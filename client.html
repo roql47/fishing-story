@@ -864,6 +864,9 @@
           // 전체 사용자 목록으로 업데이트
           currentUserData = data.users;
           updateUserList();
+        } else if (data.type === 'shopItems') {
+          // 상점 아이템 정보 갱신
+          updateStoreItemsFromServer(data.rods, data.accessories);
         } else {
           addMessage(data);
         }
@@ -938,6 +941,56 @@
         type: 'requestUserInfo', 
         targetUserId: userId 
       }));
+    }
+    
+    // 서버에서 받은 상점 아이템 정보로 상점 목록 업데이트
+    function updateStoreItemsFromServer(rods, accessories) {
+      const storeList = document.getElementById('storeList');
+      if (!storeList) {
+        console.error("storeList 요소를 찾을 수 없습니다");
+        return;
+      }
+      
+      // 기존 내용을 비우고 섹션 헤더만 남김
+      const rodSection = storeList.querySelector('.store-section:first-child');
+      const accessorySection = storeList.querySelector('.store-section:last-child');
+      
+      if (!rodSection || !accessorySection) {
+        console.error("상점 섹션을 찾을 수 없습니다");
+        return;
+      }
+      
+      // 낚시대 아이템 추가
+      rods.forEach(rod => {
+        const rodItem = document.createElement('div');
+        rodItem.className = 'store-item';
+        rodItem.innerHTML = `
+          <span>${rod.name} (레벨 ${rod.fishingSkill})</span>
+          <div class="item-details">
+            <span class="price">${formatPrice(rod.price)}원</span>
+            <button class="buy-btn" data-item="${rod.name}" data-price="${rod.price}">구매</button>
+          </div>
+        `;
+        rodSection.appendChild(rodItem);
+      });
+      
+      // 악세사리 아이템 추가
+      accessories.forEach(acc => {
+        const cooldownReductionSec = acc.cooldownReduction / 1000;
+        const sellBonusPercent = acc.sellBonus * 100;
+        
+        const accessoryItem = document.createElement('div');
+        accessoryItem.className = 'store-item';
+        accessoryItem.innerHTML = `
+          <span>${acc.name}</span>
+          <div class="item-effect">낚시 쿨다운 -${cooldownReductionSec}초, 판매 보너스 +${sellBonusPercent}%</div>
+          <div class="item-details">
+            <span class="price">${formatPrice(acc.price)}원</span>
+            <button class="buy-btn" data-item="${acc.name}" data-price="${acc.price}">구매</button>
+          </div>
+        `;
+        accessorySection.appendChild(accessoryItem);
+      });
     }
     
     // 인벤토리 모달 닫기 함수
@@ -1212,83 +1265,20 @@
       // 낚시대 추가
       const rodSection = document.createElement('div');
       rodSection.className = 'store-section';
-      rodSection.innerHTML = '<h3>🎣 낚시대 (구매 시 낚시 스킬 레벨이 자동으로 해당 레벨로 상승)</h3>';
+      rodSection.innerHTML = '<h3>🎣 낚시대</h3>';
       storeList.appendChild(rodSection);
       
-      // 낚시대 상품 생성 (레벨에 따른 비용 설정)
-      for (const [level, name] of Object.entries(rodNames)) {
-        if (level == 0) continue; // 맨손은 상점에서 판매하지 않음
-        
-        const rodLevel = parseInt(level);
-        const rodPrice = rodLevel * rodLevel * 5000;
-        
-        const rodItem = document.createElement('div');
-        rodItem.className = 'store-item';
-        rodItem.innerHTML = `
-          <span>${name} (레벨 ${rodLevel})</span>
-          <div class="item-details">
-            <span class="price">${formatPrice(rodPrice)}원</span>
-            <button class="buy-btn" data-item="${name}" data-price="${rodPrice}">구매</button>
-          </div>
-        `;
-        rodSection.appendChild(rodItem);
-      }
+      // 서버에 가격 정보 요청
+      socket.send(JSON.stringify({ 
+        type: 'request', 
+        requestType: 'shopItems'
+      }));
       
       // 악세사리 추가
       const accessorySection = document.createElement('div');
       accessorySection.className = 'store-section';
       accessorySection.innerHTML = '<h3>💍 악세사리 (쿨다운 감소 및 판매 보너스)</h3>';
       storeList.appendChild(accessorySection);
-      
-      // 악세사리 상품 생성 (레벨에 따른 비용 설정)
-      for (const [level, name] of Object.entries(accessoryNames)) {
-        if (level == 0) continue; // '없음'은 상점에서 판매하지 않음
-        
-        const accessoryLevel = parseInt(level);
-        const accessoryPrice = accessoryLevel * accessoryLevel * 8000;
-        
-        // 악세사리 효과 설명
-        let effectDesc = '';
-        if (name === "오래된반지") {
-          effectDesc = "낚시 쿨다운 -15초, 판매 보너스 +5%";
-        } else if (name === "은목걸이") {
-          effectDesc = "낚시 쿨다운 -30초, 판매 보너스 +10%";
-        } else if (name === "금귀걸이") {
-          effectDesc = "낚시 쿨다운 -45초, 판매 보너스 +15%";
-        } else if (name === "마법의펜던트") {
-          effectDesc = "낚시 쿨다운 -60초, 판매 보너스 +20%";
-        } else if (name === "에메랄드브로치") {
-          effectDesc = "낚시 쿨다운 -75초, 판매 보너스 +25%";
-        } else if (name === "토파즈이어링") {
-          effectDesc = "낚시 쿨다운 -90초, 판매 보너스 +30%";
-        } else if (name === "자수정팔찌") {
-          effectDesc = "낚시 쿨다운 -105초, 판매 보너스 +35%";
-        } else if (name === "백금티아라") {
-          effectDesc = "낚시 쿨다운 -120초, 판매 보너스 +40%";
-        } else if (name === "만드라고라허브") {
-          effectDesc = "낚시 쿨다운 -135초, 판매 보너스 +45%";
-        } else if (name === "에테르나무묘목") {
-          effectDesc = "낚시 쿨다운 -150초, 판매 보너스 +50%";
-        } else if (name === "몽마의조각상") {
-          effectDesc = "낚시 쿨다운 -165초, 판매 보너스 +55%";
-        } else if (name === "마카롱훈장") {
-          effectDesc = "낚시 쿨다운 -180초, 판매 보너스 +60%";
-        } else if (name === "빛나는마력순환체") {
-          effectDesc = "낚시 쿨다운 -210초, 판매 보너스 +80%";
-        }
-        
-        const accessoryItem = document.createElement('div');
-        accessoryItem.className = 'store-item';
-        accessoryItem.innerHTML = `
-          <span>${name}</span>
-          <div class="item-effect">${effectDesc}</div>
-          <div class="item-details">
-            <span class="price">${formatPrice(accessoryPrice)}원</span>
-            <button class="buy-btn" data-item="${name}" data-price="${accessoryPrice}">구매</button>
-          </div>
-        `;
-        accessorySection.appendChild(accessoryItem);
-      }
     }
 
     // 페이지 로드 시 초기화
