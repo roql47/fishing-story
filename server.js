@@ -966,19 +966,56 @@ async function initializeServer() {
     const wss = new WebSocket.Server({ server });
     
     wss.on('connection', (ws, request) => {
-      // 연결 시 클라이언트의 IP 주소를 임시 userId로 사용 (실제 로그인 후 UUID로 대체됨)
-      const ip = request.socket.remoteAddress;
-      // 클라이언트에게 join 요청 메시지 전송
+      const ip = request.headers['x-forwarded-for']?.split(',')[0].trim() || 
+                request.socket.remoteAddress;
+      
+      // 닉네임 요청
       ws.send(JSON.stringify({ type: 'request_nickname' }));
-
+      
       ws.on('message', (data) => {
         let parsed;
         try {
           parsed = JSON.parse(data);
-        } catch {
+        } catch (e) {
+          console.error('JSON 파싱 오류:', e);
           return;
         }
-
+        
+        // 상점 아이템 정보 요청
+        if (parsed.type === 'request' && parsed.requestType === 'shopItems') {
+          const rodItems = [];
+          for (const [rodName, rodInfo] of Object.entries(rodData)) {
+            if (rodName === "맨손") continue; // 맨손은 상점에서 판매하지 않음
+            
+            rodItems.push({
+              name: rodName,
+              price: rodInfo.price,
+              fishingSkill: rodInfo.fishingSkill,
+              requires: rodInfo.requires
+            });
+          }
+          
+          const accessoryItems = [];
+          for (const [accName, accInfo] of Object.entries(accessoryData)) {
+            if (accName === "없음") continue; // '없음'은 상점에서 판매하지 않음
+            
+            accessoryItems.push({
+              name: accName,
+              price: accInfo.price,
+              cooldownReduction: accInfo.cooldownReduction,
+              sellBonus: accInfo.sellBonus,
+              requires: accInfo.requires
+            });
+          }
+          
+          ws.send(JSON.stringify({
+            type: 'shopItems',
+            rods: rodItems,
+            accessories: accessoryItems
+          }));
+          return;
+        }
+        
         // 사용자 정보 요청 (닉네임 클릭 시)
         if (parsed.type === 'requestUserInfo') {
           const targetUserId = parsed.targetUserId;
@@ -1397,6 +1434,8 @@ async function initializeServer() {
           const formatted = `[${time}] ${nickname}: ${item}`;
           saveLog(room, formatted, userId, nickname);
           broadcast(room, { type: 'chat', text: formatted });
+        } catch (e) {
+          console.error('WebSocket error:', e);
         }
       });
 
