@@ -265,6 +265,8 @@ async function loadDatabase() {
 
 // 현재 메모리 데이터를 MongoDB에 저장하기
 async function saveDatabase() {
+  console.log('saveDatabase 호출됨, MongoDB 연결 상태:', isConnected());
+  
   if (!isConnected()) {
     console.log('MongoDB 연결이 준비되지 않아 데이터베이스 저장을 건너뜁니다.');
     return;
@@ -275,29 +277,42 @@ async function saveDatabase() {
     
     // 인벤토리 저장
     for (const [userId, items] of inventories) {
+      // MongoDB에 올바르게 저장되도록 객체를 변환
+      const itemsObject = {};
+      for (const [key, value] of Object.entries(items)) {
+        if (!key.startsWith('$') && !key.startsWith('_')) {
+          itemsObject[key] = value;
+        }
+      }
+      
+      console.log(`인벤토리 저장 시도 (${userId}):`, itemsObject);
+      
       savePromises.push(
         Inventory.findOneAndUpdate(
           { userId },
-          { userId, items },
-          { upsert: true }
+          { userId, items: itemsObject },
+          { upsert: true, new: true }
         ).catch(e => console.error(`인벤토리 저장 에러 (${userId}):`, e))
       );
     }
     
     // 골드 저장
     for (const [userId, amount] of userGold) {
+      console.log(`골드 저장 시도 (${userId}): ${amount}`);
+      
       savePromises.push(
         Gold.findOneAndUpdate(
           { userId },
           { userId, amount },
-          { upsert: true }
+          { upsert: true, new: true }
         ).catch(e => console.error(`골드 저장 에러 (${userId}):`, e))
       );
     }
     
     // 모든 저장 작업 병렬 처리
-    await Promise.allSettled(savePromises);
-    console.log('데이터베이스 저장 완료');
+    const results = await Promise.allSettled(savePromises);
+    console.log('데이터베이스 저장 완료, 결과:', 
+      results.map(r => r.status === 'fulfilled' ? '성공' : '실패').join(', '));
   } catch (e) {
     console.error("데이터베이스 저장 에러:", e);
   }
