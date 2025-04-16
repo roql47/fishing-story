@@ -38,6 +38,7 @@ const userSchema = new mongoose.Schema({
 
 const inventorySchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
+  username: { type: String, required: true },
   items: { type: Map, of: Number, default: {} }
 });
 
@@ -48,9 +49,10 @@ const goldSchema = new mongoose.Schema({
 
 // 채팅 로그를 위한 스키마 추가
 const chatLogSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  username: { type: String, required: true },
   room: { type: String, required: true },
-  content: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now }
+  content: { type: String, required: true }
 });
 
 const User = mongoose.model('User', userSchema);
