@@ -433,13 +433,8 @@
       <div id="shopTab" class="tab-content">
         <div class="shop-container">
           <div class="shop-title">🛒 낚시 용품 상점</div>
-          <div class="shop-item">
-            <div class="shop-item-info">
-              <div class="shop-item-name">낡은낚시대</div>
-              <div class="shop-item-desc">기본적인 낚시를 할 수 있는 낡은 낚시대입니다.</div>
-              <div class="shop-item-price">💰 100 골드</div>
-            </div>
-            <button id="buyFishingRod">구매하기</button>
+          <div id="storeList">
+            <!-- 상점 아이템이 여기에 동적으로 표시됩니다 -->
           </div>
         </div>
       </div>
@@ -726,6 +721,11 @@
           content.classList.remove('active');
         });
         document.getElementById(tabId + 'Tab').classList.add('active');
+        
+        // 상점 탭이 활성화되면 상점 리스트 업데이트
+        if (tabId === 'shop') {
+          updateStoreList();
+        }
       });
     });
 
@@ -1323,6 +1323,36 @@
         accessorySection.appendChild(accessoryItem);
       }
     }
+
+    // 페이지 로드 시 상점 아이템 업데이트
+    document.addEventListener('DOMContentLoaded', function() {
+      // 가격 포맷 함수 추가
+      window.formatPrice = function(price) {
+        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      };
+      
+      // 상점 리스트 초기화
+      updateStoreList();
+      
+      // 상점에서 구매 버튼 클릭 이벤트 위임
+      document.getElementById('storeList').addEventListener('click', function(e) {
+        if (e.target.classList.contains('buy-btn')) {
+          const item = e.target.getAttribute('data-item');
+          const price = parseInt(e.target.getAttribute('data-price'));
+          
+          if (!isConnected) {
+            alert('서버에 연결되어 있지 않습니다. 먼저 채팅방에 입장하세요.');
+            return;
+          }
+          
+          socket.send(JSON.stringify({ 
+            type: 'buy', 
+            item: '구매 ' + item,
+            price: price 
+          }));
+        }
+      });
+    });
   </script>
 </body>
 </html>
