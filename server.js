@@ -214,14 +214,27 @@ app.post('/api/login', async (req, res) => {
 // 데이터베이스에서 기존 데이터를 불러오기
 async function loadDatabase() {
   try {
+    // 인벤토리 불러오기
     const inventoriesData = await Inventory.find({});
-    const goldData = await Gold.find({});
     
     for (const inv of inventoriesData) {
-      inventories.set(inv.userId, inv.items);
+      // Map 형태로 변환하여 메모리에 저장
+      const items = {};
+      if (inv.items && inv.items instanceof Map) {
+        for (const [key, value] of inv.items.entries()) {
+          items[key] = value;
+        }
+      } else if (inv.items && typeof inv.items === 'object') {
+        // 기존 데이터가 객체 형태일 경우
+        Object.assign(items, inv.items);
+      }
+      inventories.set(inv.userId, items);
     }
     
-    for (const gold of goldData) {
+    // 골드 불러오기
+    const goldsData = await Gold.find({});
+    
+    for (const gold of goldsData) {
       userGold.set(gold.userId, gold.amount);
     }
     
