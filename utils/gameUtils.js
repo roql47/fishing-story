@@ -277,20 +277,20 @@ async function saveDatabase() {
     
     // 인벤토리 저장
     for (const [userId, items] of inventories) {
-      // MongoDB에 올바르게 저장되도록 객체를 변환
-      const itemsObject = {};
+      // MongoDB Map 타입에 맞게 변환
+      const itemsMap = new Map();
       for (const [key, value] of Object.entries(items)) {
-        if (!key.startsWith('$') && !key.startsWith('_')) {
-          itemsObject[key] = value;
+        if (!key.startsWith('$') && !key.startsWith('_') && value > 0) {
+          itemsMap.set(key, value);
         }
       }
       
-      console.log(`인벤토리 저장 시도 (${userId}):`, itemsObject);
+      console.log(`인벤토리 저장 시도 (${userId}):`, Object.fromEntries(itemsMap));
       
       savePromises.push(
         Inventory.findOneAndUpdate(
           { userId },
-          { userId, items: itemsObject },
+          { userId, items: itemsMap },
           { upsert: true, new: true }
         ).catch(e => console.error(`인벤토리 저장 에러 (${userId}):`, e))
       );
