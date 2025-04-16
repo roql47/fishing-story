@@ -963,15 +963,32 @@ async function initializeServer() {
     
     // HTTP 서버 생성
     const server = http.createServer(app);
-    const wss = new WebSocket.Server({ server });
+    const wss = new WebSocket.Server({ 
+      server,
+      // ping 간격 설정 (30초)
+      pingInterval: 30000,
+      // 연결이 끊어진 것으로 간주하기 전 ping 타임아웃 (10초)
+      pingTimeout: 10000
+    });
     
+    console.log('WebSocket 서버 초기화됨');
+    
+    // 서버 연결 이벤트
     wss.on('connection', (ws, request) => {
+      console.log('새 WebSocket 연결 시도:', request.socket.remoteAddress);
+      
       const ip = request.headers['x-forwarded-for']?.split(',')[0].trim() || 
                 request.socket.remoteAddress;
       
       // 닉네임 요청
-      ws.send(JSON.stringify({ type: 'request_nickname' }));
+      try {
+        ws.send(JSON.stringify({ type: 'request_nickname' }));
+        console.log('request_nickname 메시지 전송됨');
+      } catch (error) {
+        console.error('닉네임 요청 메시지 전송 실패:', error);
+      }
       
+      // 메시지 핸들러
       ws.on('message', (data) => {
         try {
           const parsed = JSON.parse(data);
@@ -1008,11 +1025,34 @@ async function initializeServer() {
           
           // 5. 일반 메시지
           if (parsed.type === 'message') {
-            if (!info) return;
+            if (!info) {
+              console.error('메시지를 보낸 사용자 정보를 찾을 수 없음');
+              ws.send(JSON.stringify({
+                type: 'chat',
+                text: '오류: 먼저 채팅방에 입장해주세요.'
+              }));
+              return;
+            }
+            
             const { userId, nickname, room } = info;
             const { text } = parsed;
             const time = getTime();
             
+            // 시스템 명령어인 경우 처리
+            if (text.startsWith('낚시하기') || 
+                text.startsWith('판매') || 
+                text.startsWith('인벤토리') || 
+                text.startsWith('도움말') || 
+                text === '명령어' || 
+                text === '도움' || 
+                text.startsWith('판매하기') || 
+                text === '전체판매') {
+              // 명령어를 buy 타입으로 변환하여 처리
+              handleBuyItem(ws, info, { item: text, price: 0 });
+              return;
+            }
+            
+            // 일반 채팅 메시지
             const formatted = `[${time}] ${nickname}: ${text}`;
             saveLog(room, formatted, userId, nickname);
             broadcast(room, { type: 'chat', text: formatted });
@@ -1021,6 +1061,14 @@ async function initializeServer() {
           
         } catch (e) {
           console.error('메시지 처리 오류:', e);
+          try {
+            ws.send(JSON.stringify({
+              type: 'chat',
+              text: '오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.'
+            }));
+          } catch (sendError) {
+            console.error('오류 메시지 전송 실패:', sendError);
+          }
         }
       });
       
@@ -1070,55 +1118,66 @@ async function initializeServer() {
       }
       
       function handleJoin(ws, nickname, room, uuid, ip) {
-        const userId = uuid || ip;
-        
-        // 동일 ID와 동일 닉네임으로 이미 접속 중인 기존 연결이 있으면 종료
-        for (const [client, info] of clients.entries()) {
-          if (info.userId === userId && info.nickname === nickname && client !== ws) {
-            client.send(JSON.stringify({ text: `⚠️ 다른 위치에서 ${nickname}으로 접속되어 연결이 종료됩니다.` }));
-            clients.delete(client);
-            client.terminate();
+        try {
+          const userId = uuid || ip;
+          
+          // 동일 ID와 동일 닉네임으로 이미 접속 중인 기존 연결이 있으면 종료
+          for (const [client, info] of clients.entries()) {
+            if (info.userId === userId && info.nickname === nickname && client !== ws) {
+              client.send(JSON.stringify({ text: `⚠️ 다른 위치에서 ${nickname}으로 접속되어 연결이 종료됩니다.` }));
+              clients.delete(client);
+              client.terminate();
+            }
           }
-        }
 
-        // 새 연결 등록
-        clients.set(ws, { userId, nickname, room });
-        if (!inventories.has(userId)) {
-          inventories.set(userId, {});
-          saveDatabase();
-        }
-        if (!userGold.has(userId)) {
-          userGold.set(userId, 0);
-          saveDatabase();
-        }
-
-        // 참여자 목록 생성 및 전송
-        const allUsers = [];
-        for (const [, info] of clients) {
-          if (info.room === room) {
-            allUsers.push({ userId: info.userId, nickname: info.nickname });
+          // 새 연결 등록
+          clients.set(ws, { userId, nickname, room });
+          if (!inventories.has(userId)) {
+            inventories.set(userId, {});
+            saveDatabase();
           }
-        }
-        
-        ws.send(JSON.stringify({ 
-          type: 'full_user_list', 
-          users: allUsers 
-        }));
+          if (!userGold.has(userId)) {
+            userGold.set(userId, 0);
+            saveDatabase();
+          }
 
-        // join 메시지 전송
-        const joinMsg = {
-          type: 'join',
-          text: `[${getTime()}] 💬 ${nickname}님이 입장했습니다.`,
-          userId,
-          nickname
-        };
-        broadcast(room, joinMsg);
-        
-        // 최신 목록 전송
-        broadcast(room, { 
-          type: 'full_user_list', 
-          users: allUsers 
-        });
+          // 참여자 목록 생성 및 전송
+          const allUsers = [];
+          for (const [, info] of clients) {
+            if (info.room === room) {
+              allUsers.push({ userId: info.userId, nickname: info.nickname });
+            }
+          }
+          
+          // 새 사용자에게 전체 사용자 목록 전송
+          ws.send(JSON.stringify({ 
+            type: 'full_user_list', 
+            users: allUsers 
+          }));
+
+          // join 메시지 전송
+          const joinMsg = {
+            type: 'join',
+            text: `[${getTime()}] 💬 ${nickname}님이 입장했습니다.`,
+            userId,
+            nickname
+          };
+          broadcast(room, joinMsg);
+          
+          // 최신 목록 전송
+          broadcast(room, { 
+            type: 'full_user_list', 
+            users: allUsers 
+          });
+          
+          console.log(`사용자 ${nickname}(${userId})가 방 "${room}"에 입장했습니다.`);
+        } catch (error) {
+          console.error('입장 처리 중 오류 발생:', error);
+          ws.send(JSON.stringify({
+            type: 'chat',
+            text: '입장 처리 중 오류가 발생했습니다.'
+          }));
+        }
       }
       
       function handleBuyItem(ws, info, parsed) {
@@ -1253,9 +1312,16 @@ async function initializeServer() {
     app.use('/api/user', userRouter);
     app.use('/api/admin', adminRouter);
     app.use('/api/fishing', fishingRouter);
+    
+    // 포트 설정
     const PORT = process.env.PORT || 3000;
+    
+    // 서버 시작
     server.listen(PORT, () => {
       console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
+      console.log(`웹 서버: http://localhost:${PORT}`);
+      console.log(`WebSocket 서버: ws://localhost:${PORT}`);
+      console.log(`채팅방에 입장하려면 '입장' 버튼을 클릭하세요.`);
     });
   } catch (e) {
     console.error('서버 초기화 에러:', e);
