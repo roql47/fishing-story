@@ -374,6 +374,7 @@ function showInventory(userId, nickname) {
   const rod = equippedRod.get(userId) || rodNames[0];
   const accessory = equippedAccessory.get(userId) || accessoryNames[0];
   const enhancement = rodEnhancement.get(userId) || 0;
+  const fishingSkill = fishingSkills.get(userId) || 0;
   
   let rodDisplay = rod;
   if (enhancement > 0) {
@@ -386,7 +387,8 @@ function showInventory(userId, nickname) {
            `👜 가방이 비어 있습니다.\n` +
            `💰 보유 골드: ${formatPrice(gold)}원\n` +
            `🎣 장착된 낚시대: ${rodDisplay}\n` +
-           `💍 장착된 악세사리: ${accessory}`;
+           `💍 장착된 악세사리: ${accessory}\n` +
+           `🔰 낚시 스킬: ${fishingSkill}`;
   }
   
   // 물고기와 기타 아이템 분리
@@ -442,7 +444,8 @@ function showInventory(userId, nickname) {
   let result = `📦 ${nickname}님의 인벤토리\n`;
   result += `💰 보유 골드: ${formatPrice(gold)}원\n`;
   result += `🎣 장착된 낚시대: ${rodDisplay}\n`;
-  result += `💍 장착된 악세사리: ${accessory}\n\n`;
+  result += `💍 장착된 악세사리: ${accessory}\n`;
+  result += `🔰 낚시 스킬: ${fishingSkill}\n\n`;
   
   if (fishItems.length > 0) {
     result += "🐟 물고기:\n";
@@ -494,7 +497,7 @@ function broadcast(room, messageObj) {
 }
 
 // 채팅 로그 저장 함수 수정
-async function saveLog(room, content) {
+async function saveLog(room, content, username = null, userId = null) {
   // 로컬 파일 시스템에 저장
   try {
     const logDir = path.join(__dirname, 'chatlogs');
@@ -512,7 +515,7 @@ async function saveLog(room, content) {
   }
   
   try {
-    const chatLog = new ChatLog({ room, content });
+    const chatLog = new ChatLog({ room, content, username, userId });
     await chatLog.save();
   } catch (e) {
     console.error("채팅 로그 MongoDB 저장 에러:", e);
@@ -874,6 +877,9 @@ async function initializeServer() {
           };
           broadcast(room, joinMsg);
           
+          // 입장 메시지 저장
+          saveLog(room, joinMsg.text, nickname, userId);
+          
           // 모든 참여자에게 최신 참여자 목록 전송하기
           broadcast(room, { 
             type: 'full_user_list', 
@@ -910,9 +916,10 @@ async function initializeServer() {
           for (const key in rodNames) {
             if (rodNames[key] === item) {
               // 순차적 구매 체크 (이전 등급의 낚시대 필요)
-              const currentRodLevel = Object.keys(rodNames).find(k => rodNames[k] === equippedRod.get(userId));
+              const currentRodLevel = parseInt(Object.keys(rodNames).findIndex(k => rodNames[k] === equippedRod.get(userId)));
+              const newRodLevel = parseInt(key);
               
-              if (parseInt(key) > 1 && (!currentRodLevel || parseInt(key) > parseInt(currentRodLevel) + 1)) {
+              if (newRodLevel > 1 && newRodLevel > currentRodLevel + 1) {
                 ws.send(JSON.stringify({
                   type: 'chat',
                   text: `[${time}] ⚠️ ${item}을(를) 구매하려면 먼저 이전 단계 낚시대를 구매해야 합니다.`
@@ -947,7 +954,7 @@ async function initializeServer() {
               
               // 구매 성공 메시지
               const result = `[${time}] 🎣 ${nickname}님이 ${item}을(를) 구매했습니다! 낚시 스킬이 ${currentSkill + 1} 레벨이 되었습니다! (남은 골드: ${formatPrice(gold - price)}원)`;
-              saveLog(room, result);
+              saveLog(room, result, nickname, userId);
               ws.send(JSON.stringify({ type: 'chat', text: result }));
               
               // 전체 방에 알림
@@ -965,9 +972,10 @@ async function initializeServer() {
             for (const key in accessoryNames) {
               if (accessoryNames[key] === item) {
                 // 순차적 구매 체크 (이전 등급의 악세사리 필요)
-                const currentAccessoryLevel = Object.keys(accessoryNames).find(k => accessoryNames[k] === equippedAccessory.get(userId));
+                const currentAccessoryLevel = parseInt(Object.keys(accessoryNames).findIndex(k => accessoryNames[k] === equippedAccessory.get(userId)));
+                const newAccessoryLevel = parseInt(key);
                 
-                if (parseInt(key) > 1 && (!currentAccessoryLevel || parseInt(key) > parseInt(currentAccessoryLevel) + 1)) {
+                if (newAccessoryLevel > 1 && newAccessoryLevel > currentAccessoryLevel + 1) {
                   ws.send(JSON.stringify({
                     type: 'chat',
                     text: `[${time}] ⚠️ ${item}을(를) 구매하려면 먼저 이전 단계 악세사리를 구매해야 합니다.`
@@ -998,7 +1006,7 @@ async function initializeServer() {
                 
                 // 구매 성공 메시지
                 const result = `[${time}] 💍 ${nickname}님이 ${item}을(를) 구매했습니다! (남은 골드: ${formatPrice(gold - price)}원)`;
-                saveLog(room, result);
+                saveLog(room, result, nickname, userId);
                 ws.send(JSON.stringify({ type: 'chat', text: result }));
                 
                 // 전체 방에 알림
@@ -1110,7 +1118,7 @@ async function initializeServer() {
             
             // 결과 메시지
             const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
-            saveLog(room, result);
+            saveLog(room, result, nickname, userId);
             broadcast(room, { type: 'chat', text: result });
             
             // 데이터베이스 저장
@@ -1166,7 +1174,7 @@ async function initializeServer() {
             
             result += `\n\n총 획득 골드: ${formatPrice(finalEarned)}원\n현재 골드: ${formatPrice(userGold.get(userId))}원`;
             
-            saveLog(room, result);
+            saveLog(room, result, nickname, userId);
             ws.send(JSON.stringify({ type: 'chat', text: result }));
             
             // 간소화된 알림을 다른 사용자에게 전송
@@ -1232,7 +1240,7 @@ async function initializeServer() {
             
             // 판매 결과 메시지
             const result = `[${time}] 💰 ${nickname}님이 ${fishName} ${quantity}마리를 판매하여 ${formatPrice(earned)}원을 획득했습니다! 현재 골드: ${formatPrice(userGold.get(userId))}원`;
-            saveLog(room, result);
+            saveLog(room, result, nickname, userId);
             broadcast(room, { type: 'chat', text: result });
             
             // 데이터베이스 저장
@@ -1293,7 +1301,7 @@ async function initializeServer() {
                 
                 // 결과 메시지
                 const result = `[${time}] 🔧 ${nickname}님이 ${fishName} ${quantity}마리를 분해하여 ${materialName} ${quantity}개를 얻었습니다!`;
-                saveLog(room, result);
+                saveLog(room, result, nickname, userId);
                 broadcast(room, { type: 'chat', text: result });
               }
               else if (option === '이벤트아이템') {
@@ -1317,7 +1325,7 @@ async function initializeServer() {
                 
                 // 결과 메시지
                 const result = `[${time}] 🔧 ${nickname}님이 ${fishName} ${quantity}마리를 분해하여 이벤트 아이템을 얻었습니다: ${resultItems}`;
-                saveLog(room, result);
+                saveLog(room, result, nickname, userId);
                 broadcast(room, { type: 'chat', text: result });
               }
               else {
@@ -1340,7 +1348,7 @@ async function initializeServer() {
               
               // 결과 메시지
               const result = `[${time}] 🔧 ${nickname}님이 ${fishName} ${quantity}마리를 분해하여 ${materialName} ${quantity}개를 얻었습니다!`;
-              saveLog(room, result);
+              saveLog(room, result, nickname, userId);
               broadcast(room, { type: 'chat', text: result });
             }
             
@@ -1407,7 +1415,7 @@ async function initializeServer() {
             
             result += `\n\n총 획득 골드: ${formatPrice(finalEarned)}원\n현재 골드: ${formatPrice(userGold.get(userId))}원`;
             
-            saveLog(room, result);
+            saveLog(room, result, nickname, userId);
             ws.send(JSON.stringify({ type: 'chat', text: result }));
             
             // 간소화된 알림을 다른 사용자에게 전송
@@ -1444,7 +1452,7 @@ async function initializeServer() {
 
           // 일반 채팅 메시지
           const formatted = `[${time}] ${nickname}: ${text}`;
-          saveLog(room, formatted).catch(e => console.error("일반 채팅 로그 저장 에러:", e));
+          saveLog(room, formatted, nickname, userId).catch(e => console.error("일반 채팅 로그 저장 에러:", e));
           broadcast(room, { type: 'chat', text: formatted });
         }
       });
