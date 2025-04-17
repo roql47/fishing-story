@@ -1463,11 +1463,35 @@ async function initializeServer() {
 
           // 📦 인벤토리 조회
           if (text === '인벤토리') {
-            const inventoryDisplay = showInventory(userId, nickname);
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: inventoryDisplay
-            }));
+            (async () => {
+              try {
+                // MongoDB에서 인벤토리 데이터 직접 가져오기
+                let inventory = await Inventory.findOne({ userId });
+                let goldData = await Gold.findOne({ userId });
+                
+                // 인벤토리가 없으면 빈 객체로 초기화
+                if (!inventory) {
+                  inventory = new Inventory({ userId, items: {} });
+                }
+                
+                // 메모리에 최신 데이터 반영
+                inventories.set(userId, inventory.items || {});
+                userGold.set(userId, goldData ? goldData.amount : 0);
+                
+                // 인벤토리 표시
+                const inventoryDisplay = showInventory(userId, nickname);
+                ws.send(JSON.stringify({
+                  type: 'chat',
+                  text: inventoryDisplay
+                }));
+              } catch (e) {
+                console.error('인벤토리 조회 MongoDB 에러:', e);
+                ws.send(JSON.stringify({
+                  type: 'chat',
+                  text: `[${time}] ⚠️ 인벤토리 조회 중 오류가 발생했습니다. 관리자에게 문의하세요.`
+                }));
+              }
+            })();
             return;
           }
 
