@@ -851,46 +851,67 @@ async function initializeServer() {
 
           // 새 연결 등록 (기존 데이터는 유지)
           clients.set(ws, { userId, nickname, room });
-          if (!inventories.has(userId)) {
-            inventories.set(userId, {});
-            saveDatabase();
-          }
-          if (!userGold.has(userId)) {
-            userGold.set(userId, 0);
-            saveDatabase();
-          }
+          
+          // MongoDB에서 인벤토리와 골드 데이터 확인 후 업데이트
+          (async () => {
+            try {
+              // 인벤토리 확인
+              let inventory = await Inventory.findOne({ userId });
+              if (!inventory) {
+                inventory = new Inventory({ userId, items: {} });
+                await inventory.save();
+              }
+              
+              // 골드 확인
+              let goldData = await Gold.findOne({ userId });
+              if (!goldData) {
+                goldData = new Gold({ userId, amount: 0 });
+                await goldData.save();
+              }
+              
+              // 메모리에 데이터 설정
+              inventories.set(userId, inventory.items || {});
+              userGold.set(userId, goldData.amount || 0);
+              
+              // 모든 참여자 목록 생성
+              const allUsers = [];
+              for (const [, info] of clients) {
+                if (info.room === room) {
+                  allUsers.push({ userId: info.userId, nickname: info.nickname });
+                }
+              }
+              
+              // 새 사용자에게 전체 사용자 목록 전송
+              ws.send(JSON.stringify({ 
+                type: 'full_user_list', 
+                users: allUsers 
+              }));
 
-          // 모든 참여자 목록 생성
-          const allUsers = [];
-          for (const [, info] of clients) {
-            if (info.room === room) {
-              allUsers.push({ userId: info.userId, nickname: info.nickname });
+              // join 메시지에 userId 포함하여 브로드캐스트
+              const joinMsg = {
+                type: 'join',
+                text: `[${getTime()}] 💬 ${nickname}님이 입장했습니다.`,
+                userId,
+                nickname
+              };
+              broadcast(room, joinMsg);
+              
+              // 입장 메시지 저장
+              await saveLog(room, joinMsg.text, nickname, userId);
+              
+              // 모든 참여자에게 최신 참여자 목록 전송하기
+              broadcast(room, { 
+                type: 'full_user_list', 
+                users: allUsers 
+              });
+            } catch (e) {
+              console.error('사용자 입장 처리 MongoDB 에러:', e);
+              ws.send(JSON.stringify({
+                type: 'chat',
+                text: `[${getTime()}] ⚠️ 데이터 로드 중 오류가 발생했습니다. 다시 접속해주세요.`
+              }));
             }
-          }
-          
-          // 새 사용자에게 전체 사용자 목록 전송
-          ws.send(JSON.stringify({ 
-            type: 'full_user_list', 
-            users: allUsers 
-          }));
-
-          // join 메시지에 userId 포함하여 브로드캐스트
-          const joinMsg = {
-            type: 'join',
-            text: `[${getTime()}] 💬 ${nickname}님이 입장했습니다.`,
-            userId,
-            nickname
-          };
-          broadcast(room, joinMsg);
-          
-          // 입장 메시지 저장
-          saveLog(room, joinMsg.text, nickname, userId);
-          
-          // 모든 참여자에게 최신 참여자 목록 전송하기
-          broadcast(room, { 
-            type: 'full_user_list', 
-            users: allUsers 
-          });
+          })();
           
           return;
         }
@@ -1644,26 +1665,53 @@ async function initializeServer() {
       ws.on('close', () => {
         const info = clients.get(ws);
         if (info) {
-          const { nickname, room } = info;
+          const { userId, nickname, room } = info;
           clients.delete(ws);
-          const exitMsg = {
-            type: 'leave',
-            text: `[${getTime()}] ❌ ${nickname}님이 퇴장했습니다.`,
-            nickname: nickname
-          };
-          broadcast(room, exitMsg);
           
-          // 모든 참여자에게 최신 참여자 목록 전송하기
-          const allUsers = [];
-          for (const [, info] of clients) {
-            if (info.room === room) {
-              allUsers.push({ userId: info.userId, nickname: info.nickname });
+          // 퇴장 시 마지막 데이터 저장
+          (async () => {
+            try {
+              // 인벤토리와 골드 데이터가 있으면 저장
+              if (inventories.has(userId)) {
+                await Inventory.findOneAndUpdate(
+                  { userId },
+                  { userId, items: inventories.get(userId) },
+                  { upsert: true }
+                );
+              }
+              
+              if (userGold.has(userId)) {
+                await Gold.findOneAndUpdate(
+                  { userId },
+                  { userId, amount: userGold.get(userId) },
+                  { upsert: true }
+                );
+              }
+              
+              const exitMsg = {
+                type: 'leave',
+                text: `[${getTime()}] ❌ ${nickname}님이 퇴장했습니다.`,
+                nickname: nickname
+              };
+              broadcast(room, exitMsg);
+              
+              // 모든 참여자에게 최신 참여자 목록 전송하기
+              const allUsers = [];
+              for (const [, info] of clients) {
+                if (info.room === room) {
+                  allUsers.push({ userId: info.userId, nickname: info.nickname });
+                }
+              }
+              broadcast(room, { 
+                type: 'full_user_list', 
+                users: allUsers 
+              });
+              
+              await saveLog(room, exitMsg.text, nickname, userId);
+            } catch (e) {
+              console.error('사용자 퇴장 처리 MongoDB 에러:', e);
             }
-          }
-          broadcast(room, { 
-            type: 'full_user_list', 
-            users: allUsers 
-          });
+          })();
         }
       });
     });
