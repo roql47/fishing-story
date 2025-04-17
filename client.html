@@ -148,6 +148,45 @@
       font-size: 0.9em;
       color: #666;
     }
+    /* 상점 카테고리 스타일 */
+    .shop-categories {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-around;
+    }
+    .shop-category {
+      padding: 8px 12px;
+      cursor: pointer;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      border-radius: 5px 5px 0 0;
+      margin-right: 5px;
+      font-size: 0.9em;
+    }
+    .shop-category.active {
+      background: #fff;
+      border-bottom: 1px solid #fff;
+      margin-bottom: -1px;
+      font-weight: bold;
+    }
+    .buy-button {
+      padding: 6px 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .buy-button:hover {
+      background-color: #45a049;
+    }
+    #shop-items-container {
+      max-height: 400px;
+      overflow-y: auto;
+    }
     .tabs {
       display: flex;
       margin-bottom: 10px;
@@ -371,13 +410,13 @@
       <div id="shopTab" class="tab-content">
         <div class="shop-container">
           <div class="shop-title">🛒 낚시 용품 상점</div>
-          <div class="shop-item">
-            <div class="shop-item-info">
-              <div class="shop-item-name">낡은낚시대</div>
-              <div class="shop-item-desc">기본적인 낚시를 할 수 있는 낡은 낚싯대입니다.</div>
-              <div class="shop-item-price">💰 100 골드</div>
-            </div>
-            <button id="buyFishingRod">구매하기</button>
+          <div class="tabs shop-categories">
+            <div class="tab shop-category active" data-category="rods">🎣 낚시대</div>
+            <div class="tab shop-category" data-category="accessories">💍 악세사리</div>
+            <div class="tab shop-category" data-category="items">📦 기타</div>
+          </div>
+          <div id="shop-items-container">
+            <!-- 상점 아이템들이 여기에 동적으로 추가됨 -->
           </div>
         </div>
       </div>
@@ -655,10 +694,146 @@
           content.classList.remove('active');
         });
         document.getElementById(tabId + 'Tab').classList.add('active');
+        
+        // 상점 탭이 활성화되면 상품 목록 표시
+        if (tabId === 'shop') {
+          loadShopItems('rods'); // 기본적으로 낚시대 카테고리 표시
+        }
       });
     });
 
-    // 낡은 낚싯대 구매 기능
+    // 상점 카테고리 전환 기능
+    document.addEventListener('DOMContentLoaded', () => {
+      const shopCategories = document.querySelectorAll('.shop-category');
+      
+      shopCategories.forEach(category => {
+        category.addEventListener('click', () => {
+          shopCategories.forEach(c => c.classList.remove('active'));
+          category.classList.add('active');
+          
+          const categoryId = category.getAttribute('data-category');
+          loadShopItems(categoryId);
+        });
+      });
+      
+      // 초기에 낚시대 카테고리 로드
+      if (document.querySelector('#shopTab.active')) {
+        loadShopItems('rods');
+      }
+    });
+
+    // 상점 아이템 로드 함수
+    function loadShopItems(category) {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+      
+      for (const [itemName, details] of Object.entries(shopItems)) {
+        if (details.category === category) {
+          const itemElement = document.createElement('div');
+          itemElement.className = 'shop-item';
+          
+          let priceText = '';
+          if (details.materialsRequired) {
+            const materials = Object.entries(details.materialsRequired)
+              .map(([material, quantity]) => `${material} ${quantity}개`)
+              .join(', ');
+            priceText = `💎 필요 재료: ${materials}`;
+          } else if (details.favorability) {
+            priceText = `✨ ${formatPrice(details.price)} 호감도`;
+          } else {
+            priceText = `💰 ${formatPrice(details.price)} 골드`;
+          }
+          
+          itemElement.innerHTML = `
+            <div class="shop-item-info">
+              <div class="shop-item-name">${itemName}</div>
+              <div class="shop-item-desc">${details.description}</div>
+              <div class="shop-item-price">${priceText}</div>
+            </div>
+            <button class="buy-button" data-item="${itemName}">구매하기</button>
+          `;
+          
+          container.appendChild(itemElement);
+        }
+      }
+      
+      // 구매 버튼에 이벤트 리스너 추가
+      document.querySelectorAll('.buy-button').forEach(button => {
+        button.addEventListener('click', () => {
+          if (!isConnected) {
+            alert('서버에 연결되어 있지 않습니다. 먼저 채팅방에 입장하세요.');
+            return;
+          }
+          
+          const itemName = button.getAttribute('data-item');
+          const item = shopItems[itemName];
+          
+          socket.send(JSON.stringify({ 
+            type: 'buy', 
+            item: itemName,
+            price: item.price || 0
+          }));
+        });
+      });
+    }
+
+    // 숫자를 1,000 단위로 ','를 추가하는 함수
+    function formatPrice(price) {
+      return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // 상점 아이템 목록
+    const shopItems = {
+      // === 낚시대 목록 ===
+      "낡은낚시대": { price: 10000, requires: null, fishingSkill: 1, category: "rods", description: "기본적인 낚시를 할 수 있는 낚시대입니다." },
+      "일반낚시대": { price: 60000, requires: "낡은낚시대", fishingSkill: 2, category: "rods", description: "조금 더 튼튼한 일반 낚시대입니다." },
+      "단단한낚시대": { price: 140000, requires: "일반낚시대", fishingSkill: 3, category: "rods", description: "단단한 재질로 만들어진 낚시대입니다." },
+      "은낚시대": { price: 370000, requires: "단단한낚시대", fishingSkill: 4, category: "rods", description: "은으로 장식된 고급 낚시대입니다." },
+      "금낚시대": { price: 820000, requires: "은낚시대", fishingSkill: 5, category: "rods", description: "금으로 장식된 매우 고급스러운 낚시대입니다." },
+      "강철낚시대": { price: 2390000, requires: "금낚시대", fishingSkill: 6, category: "rods", description: "강철로 제작된 튼튼한 낚시대입니다." },
+      "사파이어낚시대": { price: 6100000, requires: "강철낚시대", fishingSkill: 7, category: "rods", description: "사파이어가 박힌 희귀한 낚시대입니다." },
+      "루비낚시대": { price: 15000000, requires: "사파이어낚시대", fishingSkill: 8, category: "rods", description: "루비가 박힌 매우 희귀한 낚시대입니다." },
+      "다이아몬드낚시대": { price: 45000000, requires: "루비낚시대", fishingSkill: 9, category: "rods", description: "다이아몬드가 박힌 전설적인 낚시대입니다." },
+      "레드다이아몬드낚시대": { price: 100000000, requires: "다이아몬드낚시대", fishingSkill: 10, category: "rods", description: "레드 다이아몬드로 제작된 낚시대입니다." },
+      "벚꽃낚시대": { price: 300000000, requires: "레드다이아몬드낚시대", fishingSkill: 11, category: "rods", description: "벚꽃 무늬가 새겨진 아름다운 낚시대입니다." },
+      "꽃망울낚시대": { price: 732000000, requires: "벚꽃낚시대", fishingSkill: 12, category: "rods", description: "꽃망울이 피어나는 듯한 낚시대입니다." },
+      "호롱불낚시대": { price: 1980000000, requires: "꽃망울낚시대", fishingSkill: 13, category: "rods", description: "호롱불처럼 빛나는 신비로운 낚시대입니다." },
+      "산호등낚시대": { price: 4300000000, requires: "호롱불낚시대", fishingSkill: 14, category: "rods", description: "산호처럼 빛나는 아름다운 낚시대입니다." },
+      "피크닉": { price: 8800000000, requires: "산호등낚시대", fishingSkill: 15, category: "rods", description: "피크닉 바구니 형태의 독특한 낚시대입니다." },
+      "마녀빗자루": { price: 25000000000, requires: "피크닉", fishingSkill: 16, category: "rods", description: "마녀의 빗자루 형태의 마법이 깃든 낚시대입니다." },
+      "에테르낚시대": { price: 64800000000, requires: "마녀빗자루", fishingSkill: 17, category: "rods", description: "에테르 물질로 만들어진 초자연적인 낚시대입니다." },
+      "별조각낚시대": { price: 147600000000, requires: "에테르낚시대", fishingSkill: 18, category: "rods", description: "별의 조각으로 만들어진 우주의 힘이 깃든 낚시대입니다." },
+      "여우꼬리낚시대": { price: 320000000000, requires: "별조각낚시대", fishingSkill: 19, category: "rods", description: "여우 꼬리 모양의 신비로운 낚시대입니다." },
+      "초콜릿롤낚시대": { price: 780000000000, requires: "여우꼬리낚시대", fishingSkill: 20, category: "rods", description: "초콜릿 롤케이크처럼 생긴 달콤한 낚시대입니다." },
+      "호박유령낚시대": { price: 2800000000000, requires: "초콜릿롤낚시대", fishingSkill: 21, category: "rods", description: "호박 유령이 깃든 공포스러운 낚시대입니다." },
+      "핑크버니낚시대": { price: 6100000000000, requires: "호박유령낚시대", fishingSkill: 22, category: "rods", description: "핑크색 토끼 모양의 귀여운 낚시대입니다." },
+      "할로우낚시대": { price: 15100000000000, requires: "핑크버니낚시대", fishingSkill: 23, category: "rods", description: "할로윈 테마의 으스스한 낚시대입니다." },
+      "여우불낚시대": { price: 40400000000000, requires: "할로우낚시대", fishingSkill: 24, category: "rods", description: "여우불이 깃든 신비로운 낚시대입니다." },
+
+      // === 악세사리 목록 ===
+      "오래된반지": { price: 0, requires: null, fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 5 }, description: "낚시 쿨타임을 5% 감소시키는 오래된 반지입니다." },
+      "은목걸이": { price: 0, requires: "오래된반지", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 15 }, description: "낚시 쿨타임을 10% 감소시키는 은목걸이입니다." },
+      "금귀걸이": { price: 0, requires: "은목걸이", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 35 }, description: "낚시 쿨타임을 15% 감소시키는 금귀걸이입니다." },
+      "마법의펜던트": { price: 0, requires: "금귀걸이", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 60 }, description: "낚시 쿨타임을 20% 감소시키는 마법의 펜던트입니다." },
+      "에메랄드브로치": { price: 0, requires: "마법의펜던트", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 100 }, description: "판매 금액이 5% 증가하는 에메랄드 브로치입니다." },
+      "토파즈이어링": { price: 0, requires: "에메랄드브로치", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 180 }, description: "판매 금액이 10% 증가하는 토파즈 이어링입니다." },
+      "자수정팔찌": { price: 0, requires: "토파즈이어링", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 300 }, description: "판매 금액이 15% 증가하는 자수정 팔찌입니다." },
+      "백금티아라": { price: 0, requires: "자수정팔찌", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 465 }, description: "판매 금액이 20% 증가하는 백금 티아라입니다." },
+      "만드라고라허브": { price: 0, requires: "백금티아라", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 700 }, description: "물고기 획득 확률이 5% 증가하는 만드라고라 허브입니다." },
+      "에테르나무묘목": { price: 0, requires: "만드라고라허브", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 1000 }, description: "물고기 획득 확률이 10% 증가하는 에테르나무 묘목입니다." },
+      "몽마의조각상": { price: 0, requires: "에테르나무묘목", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 1800 }, description: "물고기 획득 확률이 15% 증가하는 몽마의 조각상입니다." },
+      "마카롱훈장": { price: 0, requires: "몽마의조각상", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 3200 }, description: "물고기 획득 확률이 20% 증가하는 마카롱 훈장입니다." },
+      "빛나는마력순환체": { price: 0, requires: "마카롱훈장", fishingSkill: 0, category: "accessories", materialsRequired: { "호박석": 5000 }, description: "물고기 획득 확률이 25% 증가하는 빛나는 마력 순환체입니다." },
+
+      // === 기타 아이템 ===
+      "호박석": { price: 500, requires: null, category: "items", favorability: true, description: "여러 악세사리를 만드는데 필요한 재료입니다." },
+      "리타의일지": { price: 0, requires: null, category: "items", materialsRequired: { "별조각": 1 }, description: "리타의 낚시 일지입니다. 읽으면 낚시 지식을 얻을 수 있습니다." },
+      "호박석뭉치": { price: 0, requires: null, category: "items", materialsRequired: { "별조각": 1 }, description: "호박석 15개를 얻을 수 있는 뭉치입니다." },
+      "호박석꾸러미": { price: 0, requires: null, category: "items", materialsRequired: { "별조각": 5 }, description: "호박석 80개를 얻을 수 있는 꾸러미입니다." },
+      "연금술포션": { price: 0, requires: null, category: "items", materialsRequired: { "별조각": 1 }, description: "마시면 일시적으로 낚시 능력이 향상되는 포션입니다." }
+    };
+
+    // 낡은 낚싯대 구매 기능 (기존 코드)
     buyFishingRodBtn.addEventListener('click', () => {
       if (!isConnected) {
         alert('서버에 연결되어 있지 않습니다. 먼저 채팅방에 입장하세요.');
