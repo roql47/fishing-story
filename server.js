@@ -811,7 +811,7 @@ async function initializeServer() {
       // 클라이언트에게 join 요청 메시지 전송
       ws.send(JSON.stringify({ type: 'request_nickname' }));
 
-      ws.on('message', (data) => {
+      ws.on('message', async (data) => {
         let parsed;
         try {
           parsed = JSON.parse(data);
@@ -1049,79 +1049,101 @@ async function initializeServer() {
 
           // 🎣 낚시하기
           if (text === '낚시하기') {
-            const currentTime = Date.now();
-            
-            // 낚시 쿨다운 계산 (악세사리에 따른 쿨다운 감소)
-            let cooldownTime = 300000; // 기본 5분
-            const accessory = equippedAccessory.get(userId) || accessoryNames[0];
-            
-            switch(accessory) {
-              case "오래된반지": cooldownTime = 285000; break; // 4분 45초
-              case "은목걸이": cooldownTime = 270000; break; // 4분 30초
-              case "금귀걸이": cooldownTime = 255000; break; // 4분 15초
-              case "마법의펜던트": cooldownTime = 240000; break; // 4분
-              default: cooldownTime = 300000; break; // 5분
-            }
-            
-            if (lastFishingTime.has(userId) && (currentTime - lastFishingTime.get(userId)) < cooldownTime) {
-              const remainingTime = Math.ceil((cooldownTime - (currentTime - lastFishingTime.get(userId))) / 1000);
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] ⏳ ${remainingTime}초 후에 다시 낚시할 수 있습니다.`
-              }));
-              return;
-            }
-            
-            // 낚시 스킬 레벨에 따른 물고기 범위 조정
-            const skillLevel = fishingSkills.get(userId) || 0;
-            
-            // 레벨에 따른 범위 지정
-            // 낚시 레벨에 따라 잡히는 물고기의 범위를 조정
-            const fishWindowSize = 10; // 한 번에 잡힐 수 있는 물고기 종류 범위
-            const fishStartIndex = Math.min(skillLevel, fishTypes.length - fishWindowSize);
-            const fishEndIndex = fishStartIndex + fishWindowSize;
-            
-            // 유효한 물고기 범위 선택
-            const effectiveFishTypes = fishTypes.slice(fishStartIndex, fishEndIndex);
-            
-            // 최종 물고기 선택
-            let randomValue = Math.random() * 100;
-            let cumulativeProbability = 0;
-            let selectedFish;
-            
-            // 희귀 물고기 (스타피쉬) 확률 체크
-            if (Math.random() < 0.005) {
-              selectedFish = fishTypes[fishTypes.length - 1]; // 스타피쉬
-            } else {
-              for (let i = 0; i < Math.min(catchProbabilities.length, effectiveFishTypes.length); i++) {
-                cumulativeProbability += catchProbabilities[i];
-                if (randomValue < cumulativeProbability) {
-                  selectedFish = effectiveFishTypes[i];
-                  break;
+            (async () => {
+              const currentTime = Date.now();
+              
+              // 낚시 쿨다운 계산 (악세사리에 따른 쿨다운 감소)
+              let cooldownTime = 300000; // 기본 5분
+              const accessory = equippedAccessory.get(userId) || accessoryNames[0];
+              
+              switch(accessory) {
+                case "오래된반지": cooldownTime = 285000; break; // 4분 45초
+                case "은목걸이": cooldownTime = 270000; break; // 4분 30초
+                case "금귀걸이": cooldownTime = 255000; break; // 4분 15초
+                case "마법의펜던트": cooldownTime = 240000; break; // 4분
+                default: cooldownTime = 300000; break; // 5분
+              }
+              
+              if (lastFishingTime.has(userId) && (currentTime - lastFishingTime.get(userId)) < cooldownTime) {
+                const remainingTime = Math.ceil((cooldownTime - (currentTime - lastFishingTime.get(userId))) / 1000);
+                ws.send(JSON.stringify({
+                  type: 'chat',
+                  text: `[${time}] ⏳ ${remainingTime}초 후에 다시 낚시할 수 있습니다.`
+                }));
+                return;
+              }
+              
+              // 낚시 스킬 레벨에 따른 물고기 범위 조정
+              const skillLevel = fishingSkills.get(userId) || 0;
+              
+              // 레벨에 따른 범위 지정
+              // 낚시 레벨에 따라 잡히는 물고기의 범위를 조정
+              const fishWindowSize = 10; // 한 번에 잡힐 수 있는 물고기 종류 범위
+              const fishStartIndex = Math.min(skillLevel, fishTypes.length - fishWindowSize);
+              const fishEndIndex = fishStartIndex + fishWindowSize;
+              
+              // 유효한 물고기 범위 선택
+              const effectiveFishTypes = fishTypes.slice(fishStartIndex, fishEndIndex);
+              
+              // 최종 물고기 선택
+              let randomValue = Math.random() * 100;
+              let cumulativeProbability = 0;
+              let selectedFish;
+              
+              // 희귀 물고기 (스타피쉬) 확률 체크
+              if (Math.random() < 0.005) {
+                selectedFish = fishTypes[fishTypes.length - 1]; // 스타피쉬
+              } else {
+                for (let i = 0; i < Math.min(catchProbabilities.length, effectiveFishTypes.length); i++) {
+                  cumulativeProbability += catchProbabilities[i];
+                  if (randomValue < cumulativeProbability) {
+                    selectedFish = effectiveFishTypes[i];
+                    break;
+                  }
+                }
+                
+                // 기본값 설정 (확률이 맞지 않는 경우를 대비)
+                if (!selectedFish) {
+                  selectedFish = effectiveFishTypes[0];
                 }
               }
               
-              // 기본값 설정 (확률이 맞지 않는 경우를 대비)
-              if (!selectedFish) {
-                selectedFish = effectiveFishTypes[0];
+              try {
+                // MongoDB에서 인벤토리 가져오기
+                let inventory = await Inventory.findOne({ userId });
+                if (!inventory) {
+                  inventory = new Inventory({ userId, items: {} });
+                }
+                
+                // 물고기 추가
+                const items = inventory.items || {};
+                items[selectedFish.name] = (items[selectedFish.name] || 0) + 1;
+                
+                // MongoDB에 직접 업데이트
+                await Inventory.findOneAndUpdate(
+                  { userId },
+                  { userId, items },
+                  { upsert: true }
+                );
+                
+                // 메모리에도 반영 (일관성 유지)
+                inventories.set(userId, items);
+                
+                // 마지막 낚시 시간 업데이트
+                lastFishingTime.set(userId, currentTime);
+                
+                // 결과 메시지
+                const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
+                saveLog(room, result, nickname, userId);
+                broadcast(room, { type: 'chat', text: result });
+              } catch (e) {
+                console.error('낚시 MongoDB 업데이트 에러:', e);
+                ws.send(JSON.stringify({
+                  type: 'chat',
+                  text: `[${time}] ⚠️ 오류가 발생했습니다. 관리자에게 문의하세요.`
+                }));
               }
-            }
-            
-            // 인벤토리 및 낚시 횟수 업데이트
-            const inv = inventories.get(userId) || {};
-            inv[selectedFish.name] = (inv[selectedFish.name] || 0) + 1;
-            inventories.set(userId, inv);
-            
-            // 마지막 낚시 시간 업데이트
-            lastFishingTime.set(userId, currentTime);
-            
-            // 결과 메시지
-            const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
-            saveLog(room, result, nickname, userId);
-            broadcast(room, { type: 'chat', text: result });
-            
-            // 데이터베이스 저장
-            saveDatabase();
+            })();
             return;
           }
 
