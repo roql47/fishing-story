@@ -515,7 +515,15 @@ async function saveLog(room, content, username = null, userId = null) {
   }
   
   try {
-    const chatLog = new ChatLog({ room, content, username, userId });
+    // username과 userId가 null이면 시스템 메시지로 처리
+    const chatLogData = { 
+      room, 
+      content,
+      // 스키마에 required로 정의된 필드에 대한 처리
+      username: username || 'system',
+      userId: userId || 'system'
+    };
+    const chatLog = new ChatLog(chatLogData);
     await chatLog.save();
   } catch (e) {
     console.error("채팅 로그 MongoDB 저장 에러:", e);
