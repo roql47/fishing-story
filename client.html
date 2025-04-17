@@ -968,7 +968,8 @@
             showInventoryModal(
               currentUserData.find(user => user.userId === data.userId)?.nickname || '알 수 없음',
               data.inventory || {},
-              data.gold || 0
+              data.gold || 0,
+              data.skillLevel || 0
             );
           } else if (data.type === 'user_list') {
             // 기존 사용자 목록을 처리
@@ -1020,7 +1021,7 @@
     }
     
     // 인벤토리 모달 표시 함수
-    function showInventoryModal(nickname, inventory, gold) {
+    function showInventoryModal(nickname, inventory, gold, skillLevel) {
       modalTitle.textContent = `${nickname}님의 인벤토리`;
       
       // 인벤토리 내용 표시
@@ -1031,6 +1032,12 @@
       goldItem.className = 'inventory-item';
       goldItem.innerHTML = `<span>💰 골드</span><span class="gold-amount">${gold} G</span>`;
       inventoryContent.appendChild(goldItem);
+      
+      // 낚시 스킬 레벨 표시
+      const skillItem = document.createElement('div');
+      skillItem.className = 'inventory-item';
+      skillItem.innerHTML = `<span>🎣 낚시 스킬 레벨</span><span>${skillLevel}</span>`;
+      inventoryContent.appendChild(skillItem);
       
       // 물고기 및 아이템 표시
       let hasItems = false;
