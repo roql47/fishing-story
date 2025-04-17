@@ -1068,21 +1068,14 @@ async function initializeServer() {
             
             // 낚시 스킬 레벨에 따른 물고기 범위 조정
             const skillLevel = fishingSkills.get(userId) || 0;
-            let fishStartIndex = 0, fishEndIndex = 10;
             
-            if (skillLevel >= 5) {
-              fishStartIndex = 1;
-              fishEndIndex = 11;
-            }
-            if (skillLevel >= 10) {
-              fishStartIndex = 2;
-              fishEndIndex = 12;
-            }
-            if (skillLevel >= 15) {
-              fishStartIndex = 3;
-              fishEndIndex = 13;
-            }
+            // 레벨에 따른 범위 지정
+            // 낚시 레벨에 따라 잡히는 물고기의 범위를 조정
+            const fishWindowSize = 10; // 한 번에 잡힐 수 있는 물고기 종류 범위
+            const fishStartIndex = Math.min(skillLevel, fishTypes.length - fishWindowSize);
+            const fishEndIndex = fishStartIndex + fishWindowSize;
             
+            // 유효한 물고기 범위 선택
             const effectiveFishTypes = fishTypes.slice(fishStartIndex, fishEndIndex);
             
             // 최종 물고기 선택
