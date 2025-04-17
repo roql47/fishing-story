@@ -343,17 +343,6 @@ function handleFishing(ws, info, time) {
   // 마지막 낚시 시간 업데이트
   lastFishingTime.set(userId, currentTime);
   
-  // 낚시 스킬 경험치 획득 (5% 확률로 레벨업)
-  if (Math.random() < 0.05) {
-    const newSkillLevel = (fishingSkills.get(userId) || 0) + 1;
-    fishingSkills.set(userId, newSkillLevel);
-    
-    // 레벨업 메시지
-    const levelUpMsg = `[${time}] 🎯 ${nickname}님의 낚시 스킬이 레벨 ${newSkillLevel}로 상승했습니다!`;
-    saveLog(room, levelUpMsg);
-    broadcast(room, { type: 'chat', text: levelUpMsg });
-  }
-  
   // 결과 메시지
   const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
   saveLog(room, result);
