@@ -817,7 +817,8 @@ async function initializeServer() {
             type: 'userInfo',
             userId: targetUserId,
             inventory: inventories.get(targetUserId) || {},
-            gold: userGold.get(targetUserId) || 0
+            gold: userGold.get(targetUserId) || 0,
+            skillLevel: fishingSkills.get(targetUserId) || 0
           };
           ws.send(JSON.stringify(info));
           return;
@@ -908,12 +909,36 @@ async function initializeServer() {
           // 낚시대 목록에 있는지 확인
           for (const key in rodNames) {
             if (rodNames[key] === item) {
+              // 순차적 구매 체크 (이전 등급의 낚시대 필요)
+              const currentRodLevel = Object.keys(rodNames).find(k => rodNames[k] === equippedRod.get(userId));
+              
+              if (parseInt(key) > 1 && (!currentRodLevel || parseInt(key) > parseInt(currentRodLevel) + 1)) {
+                ws.send(JSON.stringify({
+                  type: 'chat',
+                  text: `[${time}] ⚠️ ${item}을(를) 구매하려면 먼저 이전 단계 낚시대를 구매해야 합니다.`
+                }));
+                return;
+              }
+              
+              // 이미 같은 등급의 낚시대를 소유하고 있는지 확인
+              if (inv[item] && inv[item] > 0) {
+                ws.send(JSON.stringify({
+                  type: 'chat',
+                  text: `[${time}] ⚠️ 이미 ${item}을(를) 소유하고 있습니다.`
+                }));
+                return;
+              }
+              
               // 골드 차감
               userGold.set(userId, gold - price);
               
               // 인벤토리에 낚시대 추가
-              inv[item] = (inv[item] || 0) + 1;
+              inv[item] = 1;
               inventories.set(userId, inv);
+              
+              // 낚시 스킬 증가
+              const currentSkill = fishingSkills.get(userId) || 0;
+              fishingSkills.set(userId, currentSkill + 1);
               
               // 자동 장착
               autoEquip(userId);
@@ -921,7 +946,7 @@ async function initializeServer() {
               purchaseSuccessful = true;
               
               // 구매 성공 메시지
-              const result = `[${time}] 🎣 ${nickname}님이 ${item}을(를) 구매했습니다! (남은 골드: ${formatPrice(gold - price)}원)`;
+              const result = `[${time}] 🎣 ${nickname}님이 ${item}을(를) 구매했습니다! 낚시 스킬이 ${currentSkill + 1} 레벨이 되었습니다! (남은 골드: ${formatPrice(gold - price)}원)`;
               saveLog(room, result);
               ws.send(JSON.stringify({ type: 'chat', text: result }));
               
@@ -939,11 +964,31 @@ async function initializeServer() {
           if (!purchaseSuccessful) {
             for (const key in accessoryNames) {
               if (accessoryNames[key] === item) {
+                // 순차적 구매 체크 (이전 등급의 악세사리 필요)
+                const currentAccessoryLevel = Object.keys(accessoryNames).find(k => accessoryNames[k] === equippedAccessory.get(userId));
+                
+                if (parseInt(key) > 1 && (!currentAccessoryLevel || parseInt(key) > parseInt(currentAccessoryLevel) + 1)) {
+                  ws.send(JSON.stringify({
+                    type: 'chat',
+                    text: `[${time}] ⚠️ ${item}을(를) 구매하려면 먼저 이전 단계 악세사리를 구매해야 합니다.`
+                  }));
+                  return;
+                }
+                
+                // 이미 같은 등급의 악세사리를 소유하고 있는지 확인
+                if (inv[item] && inv[item] > 0) {
+                  ws.send(JSON.stringify({
+                    type: 'chat',
+                    text: `[${time}] ⚠️ 이미 ${item}을(를) 소유하고 있습니다.`
+                  }));
+                  return;
+                }
+                
                 // 골드 차감
                 userGold.set(userId, gold - price);
                 
                 // 인벤토리에 악세사리 추가
-                inv[item] = (inv[item] || 0) + 1;
+                inv[item] = 1;
                 inventories.set(userId, inv);
                 
                 // 자동 장착
@@ -1062,17 +1107,6 @@ async function initializeServer() {
             
             // 마지막 낚시 시간 업데이트
             lastFishingTime.set(userId, currentTime);
-            
-            // 낚시 스킬 경험치 획득 (5% 확률로 레벨업)
-            if (Math.random() < 0.05) {
-              const newSkillLevel = (fishingSkills.get(userId) || 0) + 1;
-              fishingSkills.set(userId, newSkillLevel);
-              
-              // 레벨업 메시지
-              const levelUpMsg = `[${time}] 🎯 ${nickname}님의 낚시 스킬이 레벨 ${newSkillLevel}로 상승했습니다!`;
-              saveLog(room, levelUpMsg);
-              broadcast(room, { type: 'chat', text: levelUpMsg });
-            }
             
             // 결과 메시지
             const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
