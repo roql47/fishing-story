@@ -858,7 +858,9 @@ async function initializeServer() {
               // 인벤토리 확인
               let inventory = await Inventory.findOne({ userId });
               if (!inventory) {
-                inventory = new Inventory({ userId, items: {} });
+                // Map 타입에 맞게 빈 인벤토리 생성
+                inventory = new Inventory({ userId });
+                inventory.items = new Map();
                 await inventory.save();
               }
               
@@ -1140,10 +1142,15 @@ async function initializeServer() {
                 const items = inventory.items || {};
                 items[selectedFish.name] = (items[selectedFish.name] || 0) + 1;
                 
-                // MongoDB에 직접 업데이트
+                // MongoDB에 직접 업데이트 (Map 타입 올바르게 처리)
+                const updateDoc = {};
+                for (const key in items) {
+                  updateDoc[`items.${key}`] = items[key];
+                }
+                
                 await Inventory.findOneAndUpdate(
                   { userId },
-                  { userId, items },
+                  { userId, $set: updateDoc },
                   { upsert: true }
                 );
                 
@@ -1213,10 +1220,15 @@ async function initializeServer() {
                 // 골드 업데이트
                 const newGoldAmount = (goldData.amount || 0) + finalEarned;
                 
-                // MongoDB에 저장
+                // MongoDB에 저장 (Map 타입 올바르게 처리)
+                const updateDoc = {};
+                for (const key in inv) {
+                  updateDoc[`items.${key}`] = inv[key];
+                }
+                
                 await Inventory.findOneAndUpdate(
                   { userId },
-                  { userId, items: inv },
+                  { userId, $set: updateDoc },
                   { upsert: true }
                 );
                 
@@ -1416,10 +1428,15 @@ async function initializeServer() {
                     const materialName = '별조각';
                     inv[materialName] = (inv[materialName] || 0) + quantity;
                     
-                    // MongoDB에 저장
+                    // MongoDB에 저장 (Map 타입 올바르게 처리)
+                    const updateDoc = {};
+                    for (const key in inv) {
+                      updateDoc[`items.${key}`] = inv[key];
+                    }
+                    
                     await Inventory.findOneAndUpdate(
                       { userId },
-                      { userId, items: inv },
+                      { userId, $set: updateDoc },
                       { upsert: true }
                     );
                     
@@ -1448,10 +1465,15 @@ async function initializeServer() {
                       resultItems += letter;
                     }
                     
-                    // MongoDB에 저장
+                    // MongoDB에 저장 (Map 타입 올바르게 처리)
+                    const updateDoc = {};
+                    for (const key in inv) {
+                      updateDoc[`items.${key}`] = inv[key];
+                    }
+                    
                     await Inventory.findOneAndUpdate(
                       { userId },
-                      { userId, items: inv },
+                      { userId, $set: updateDoc },
                       { upsert: true }
                     );
                     
@@ -1479,10 +1501,15 @@ async function initializeServer() {
                   const materialName = fish.material;
                   inv[materialName] = (inv[materialName] || 0) + quantity;
                   
-                  // MongoDB에 저장
+                  // MongoDB에 저장 (Map 타입 올바르게 처리)
+                  const updateDoc = {};
+                  for (const key in inv) {
+                    updateDoc[`items.${key}`] = inv[key];
+                  }
+                  
                   await Inventory.findOneAndUpdate(
                     { userId },
-                    { userId, items: inv },
+                    { userId, $set: updateDoc },
                     { upsert: true }
                   );
                   
@@ -1564,10 +1591,15 @@ async function initializeServer() {
                 // 골드 업데이트
                 const newGoldAmount = (goldData.amount || 0) + finalEarned;
                 
-                // MongoDB에 저장
+                // MongoDB에 저장 (Map 타입 올바르게 처리)
+                const updateDoc = {};
+                for (const key in inv) {
+                  updateDoc[`items.${key}`] = inv[key];
+                }
+                
                 await Inventory.findOneAndUpdate(
                   { userId },
-                  { userId, items: inv },
+                  { userId, $set: updateDoc },
                   { upsert: true }
                 );
                 
