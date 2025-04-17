@@ -888,46 +888,95 @@ async function initializeServer() {
 
           // 새 연결 등록 (기존 데이터는 유지)
           clients.set(ws, { userId, nickname, room });
-          if (!inventories.has(userId)) {
-            inventories.set(userId, {});
-            saveDatabase();
-          }
-          if (!userGold.has(userId)) {
-            userGold.set(userId, 0);
-            saveDatabase();
-          }
+          
+          // MongoDB에서 인벤토리와 골드 데이터 확인 후 메모리에 로드
+          (async () => {
+            try {
+              console.log(`사용자 입장: ${userId}`);
+              
+              // 인벤토리 확인 및 생성
+              const inventoryDoc = await Inventory.findOne({ userId });
+              let items = {};
+              
+              if (inventoryDoc && inventoryDoc.items) {
+                if (inventoryDoc.items instanceof Map) {
+                  // Map인 경우
+                  for (const [key, value] of inventoryDoc.items.entries()) {
+                    items[key] = value;
+                  }
+                } else if (typeof inventoryDoc.items === 'object') {
+                  // 객체인 경우
+                  items = {...inventoryDoc.items};
+                }
+              } else {
+                // 새 인벤토리 생성
+                await Inventory.updateOne(
+                  { userId },
+                  { userId, items: {} },
+                  { upsert: true }
+                );
+              }
+              
+              // 메모리에 인벤토리 설정
+              inventories.set(userId, items);
+              console.log('로드된 인벤토리:', items);
+              
+              // 골드 확인 및 생성
+              const goldDoc = await Gold.findOne({ userId });
+              const gold = goldDoc ? goldDoc.amount : 0;
+              
+              if (!goldDoc) {
+                // 새 골드 데이터 생성
+                await Gold.updateOne(
+                  { userId },
+                  { userId, amount: 0 },
+                  { upsert: true }
+                );
+              }
+              
+              // 메모리에 골드 설정
+              userGold.set(userId, gold);
+              console.log('로드된 골드:', gold);
+              
+              // 모든 참여자 목록 생성
+              const allUsers = [];
+              for (const [, info] of clients) {
+                if (info.room === room) {
+                  allUsers.push({ userId: info.userId, nickname: info.nickname });
+                }
+              }
+              
+              // 새 사용자에게 전체 사용자 목록 전송
+              ws.send(JSON.stringify({ 
+                type: 'full_user_list', 
+                users: allUsers 
+              }));
 
-          // 모든 참여자 목록 생성
-          const allUsers = [];
-          for (const [, info] of clients) {
-            if (info.room === room) {
-              allUsers.push({ userId: info.userId, nickname: info.nickname });
+              // join 메시지에 userId 포함하여 브로드캐스트
+              const joinMsg = {
+                type: 'join',
+                text: `[${getTime()}] 💬 ${nickname}님이 입장했습니다.`,
+                userId,
+                nickname
+              };
+              broadcast(room, joinMsg);
+              
+              // 입장 메시지 저장
+              await saveLog(room, joinMsg.text, nickname, userId);
+              
+              // 모든 참여자에게 최신 참여자 목록 전송하기
+              broadcast(room, { 
+                type: 'full_user_list', 
+                users: allUsers 
+              });
+            } catch (e) {
+              console.error('사용자 입장 처리 중 오류:', e);
+              ws.send(JSON.stringify({
+                type: 'chat',
+                text: `[${getTime()}] ⚠️ 데이터 로드 중 오류가 발생했습니다. 다시 접속해주세요.`
+              }));
             }
-          }
-          
-          // 새 사용자에게 전체 사용자 목록 전송
-          ws.send(JSON.stringify({ 
-            type: 'full_user_list', 
-            users: allUsers 
-          }));
-
-          // join 메시지에 userId 포함하여 브로드캐스트
-          const joinMsg = {
-            type: 'join',
-            text: `[${getTime()}] 💬 ${nickname}님이 입장했습니다.`,
-            userId,
-            nickname
-          };
-          broadcast(room, joinMsg);
-          
-          // 입장 메시지 저장
-          saveLog(room, joinMsg.text, nickname, userId);
-          
-          // 모든 참여자에게 최신 참여자 목록 전송하기
-          broadcast(room, { 
-            type: 'full_user_list', 
-            users: allUsers 
-          });
+          })();
           
           return;
         }
@@ -1164,37 +1213,14 @@ async function initializeServer() {
               try {
                 console.log(`낚시 시도: ${userId}가 ${selectedFish.name} 획득`);
                 
-                // 인벤토리 가져오기 - 없으면 새로 생성
-                let inventoryDoc = await Inventory.findOne({ userId });
-                if (!inventoryDoc) {
-                  inventoryDoc = new Inventory({ 
-                    userId,
-                    items: {}
-                  });
-                }
+                // 완전히 단순화된 접근 방식: 기존 데이터를 유지하면서 새 항목만 업데이트
+                const updateResult = await Inventory.updateOne(
+                  { userId },
+                  { $inc: { [`items.${selectedFish.name}`]: 1 } },
+                  { upsert: true }
+                );
                 
-                // 기존 아이템 정보를 JavaScript 객체로 변환
-                let items = {};
-                if (inventoryDoc.items instanceof Map) {
-                  // Map인 경우
-                  for (const [key, value] of inventoryDoc.items.entries()) {
-                    items[key] = value;
-                  }
-                } else if (inventoryDoc.items && typeof inventoryDoc.items === 'object') {
-                  // 객체인 경우
-                  items = {...inventoryDoc.items};
-                }
-                
-                // 낚은 물고기 추가
-                items[selectedFish.name] = (items[selectedFish.name] || 0) + 1;
-                console.log('업데이트할 인벤토리:', items);
-                
-                // 직접 설정 - Mongoose 내부 Map 변환 방식 사용하지 않음
-                inventoryDoc.items = items;
-                
-                // 저장
-                await inventoryDoc.save();
-                console.log('인벤토리 저장 완료:', inventoryDoc);
+                console.log('낚시 인벤토리 업데이트 결과:', updateResult);
                 
                 // 결과 메시지
                 const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
@@ -1202,10 +1228,33 @@ async function initializeServer() {
                 broadcast(room, { type: 'chat', text: result });
               } catch (e) {
                 console.error('낚시 MongoDB 업데이트 에러:', e);
-                ws.send(JSON.stringify({
-                  type: 'chat',
-                  text: `[${time}] ⚠️ 오류가 발생했습니다. 관리자에게 문의하세요.`
-                }));
+                
+                // 강제로 새 방식 시도 - 첫 낚시일 경우를 위해
+                try {
+                  console.log('대체 저장 방식 시도...');
+                  // 새 문서 생성 또는 기존 문서 전체 교체
+                  const inv = inventories.get(userId) || {};
+                  await Inventory.findOneAndUpdate(
+                    { userId },
+                    { 
+                      userId, 
+                      items: { [selectedFish.name]: 1 } 
+                    },
+                    { upsert: true, new: true }
+                  );
+                  console.log('대체 저장 성공!');
+                  
+                  // 결과 메시지
+                  const result = `[${time}] 🎣 ${nickname}님이 '${selectedFish.name}'(을)를 낚았습니다!`;
+                  saveLog(room, result, nickname, userId);
+                  broadcast(room, { type: 'chat', text: result });
+                } catch (e2) {
+                  console.error('대체 저장 방식도 실패:', e2);
+                  ws.send(JSON.stringify({
+                    type: 'chat',
+                    text: `[${time}] ⚠️ 오류가 발생했습니다. 관리자에게 문의하세요. (오류: ${e.message})`
+                  }));
+                }
               }
             })();
             
@@ -1319,58 +1368,120 @@ async function initializeServer() {
           // 💰 특정 물고기 판매하기
           const sellMatch = text.match(/^판매하기\s+(\S+)\s+(\d+)$/);
           if (sellMatch) {
-            const fishName = sellMatch[1];
-            const quantity = parseInt(sellMatch[2]);
-            const inv = inventories.get(userId) || {};
+            (async () => {
+              try {
+                const fishName = sellMatch[1];
+                const quantity = parseInt(sellMatch[2]);
+                
+                console.log(`특정 물고기 판매 시도: ${userId}, ${fishName}, ${quantity}`);
+                
+                // 인벤토리 가져오기
+                let inventoryDoc = await Inventory.findOne({ userId });
+                if (!inventoryDoc) {
+                  ws.send(JSON.stringify({
+                    type: 'chat',
+                    text: `[${time}] ⚠️ 인벤토리가 존재하지 않습니다.`
+                  }));
+                  return;
+                }
+                
+                let items = {};
+                if (inventoryDoc.items instanceof Map) {
+                  // Map인 경우
+                  for (const [key, value] of inventoryDoc.items.entries()) {
+                    items[key] = value;
+                  }
+                } else if (inventoryDoc.items && typeof inventoryDoc.items === 'object') {
+                  // 객체인 경우
+                  items = {...inventoryDoc.items};
+                }
+                
+                // 해당 물고기가 존재하는지 확인
+                const fish = fishTypes.find(f => f.name === fishName);
+                if (!fish) {
+                  ws.send(JSON.stringify({
+                    type: 'chat',
+                    text: `[${time}] ⚠️ '${fishName}'은(는) 존재하지 않는 물고기입니다.`
+                  }));
+                  return;
+                }
+                
+                // 해당 물고기를 충분히 보유하고 있는지 확인
+                const currentCount = items[fishName] || 0;
+                if (currentCount < quantity) {
+                  ws.send(JSON.stringify({
+                    type: 'chat',
+                    text: `[${time}] ⚠️ ${fishName}을(를) ${quantity}개 판매하려면 최소한 ${quantity}개가 필요합니다. 현재 ${currentCount}개 보유 중.`
+                  }));
+                  return;
+                }
+                
+                // 판매 금액 계산 (악세사리 보너스 적용)
+                const accessory = equippedAccessory.get(userId) || accessoryNames[0];
+                let bonusMultiplier = 1.0;
+                
+                switch(accessory) {
+                  case "오래된반지": bonusMultiplier = 1.05; break;
+                  case "은목걸이": bonusMultiplier = 1.10; break;
+                  case "금귀걸이": bonusMultiplier = 1.15; break;
+                  case "마법의펜던트": bonusMultiplier = 1.20; break;
+                  default: bonusMultiplier = 1.0; break;
+                }
+                
+                const earned = Math.floor(fish.price * quantity * bonusMultiplier);
+                
+                // 물고기 삭제 및 골드 획득
+                if (quantity >= currentCount) {
+                  // 물고기 완전히 제거
+                  delete items[fishName];
+                  
+                  // MongoDB 업데이트
+                  await Inventory.updateOne(
+                    { userId },
+                    { $unset: { [`items.${fishName}`]: "" } }
+                  );
+                } else {
+                  // 물고기 부분 감소
+                  items[fishName] = currentCount - quantity;
+                  
+                  // MongoDB 업데이트
+                  await Inventory.updateOne(
+                    { userId },
+                    { $set: { [`items.${fishName}`]: currentCount - quantity } }
+                  );
+                }
+                
+                // 골드 업데이트
+                let goldDoc = await Gold.findOne({ userId });
+                const currentGold = goldDoc ? goldDoc.amount : 0;
+                const newGoldAmount = currentGold + earned;
+                
+                await Gold.updateOne(
+                  { userId },
+                  { $set: { amount: newGoldAmount } },
+                  { upsert: true }
+                );
+                
+                // 메모리 데이터 업데이트
+                inventories.set(userId, items);
+                userGold.set(userId, newGoldAmount);
+                
+                console.log('판매 후 물고기 수량:', items[fishName] || 0);
+                console.log('판매 후 골드:', newGoldAmount);
+                
+                // 판매 결과 메시지
+                const result = `[${time}] 💰 ${nickname}님이 ${fishName} ${quantity}마리를 판매하여 ${formatPrice(earned)}원을 획득했습니다! 현재 골드: ${formatPrice(newGoldAmount)}원`;
+                saveLog(room, result, nickname, userId);
+                broadcast(room, { type: 'chat', text: result });
+              } catch (e) {
+                console.error('특정 물고기 판매 처리 중 오류:', e);
+                ws.send(JSON.stringify({
+                  type: 'chat',
+                  text: `[${time}] ⚠️ 판매 처리 중 오류가 발생했습니다. (오류: ${e.message})`
+                }));
+              }
+            })();
             
-            // 해당 물고기가 존재하는지 확인
-            const fish = fishTypes.find(f => f.name === fishName);
-            if (!fish) {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] ⚠️ '${fishName}'은(는) 존재하지 않는 물고기입니다.`
-              }));
-              return;
-            }
-            
-            // 해당 물고기를 충분히 보유하고 있는지 확인
-            const currentCount = inv[fishName] || 0;
-            if (currentCount < quantity) {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] ⚠️ ${fishName}을(를) ${quantity}개 판매하려면 최소한 ${quantity}개가 필요합니다. 현재 ${currentCount}개 보유 중.`
-              }));
-              return;
-            }
-            
-            // 판매 금액 계산 (악세사리 보너스 적용)
-            const accessory = equippedAccessory.get(userId) || accessoryNames[0];
-            let bonusMultiplier = 1.0;
-            
-            switch(accessory) {
-              case "오래된반지": bonusMultiplier = 1.05; break;
-              case "은목걸이": bonusMultiplier = 1.10; break;
-              case "금귀걸이": bonusMultiplier = 1.15; break;
-              case "마법의펜던트": bonusMultiplier = 1.20; break;
-              default: bonusMultiplier = 1.0; break;
-            }
-            
-            const earned = Math.floor(fish.price * quantity * bonusMultiplier);
-            
-            // 물고기 판매 및 골드 획득
-            inv[fishName] -= quantity;
-            if (inv[fishName] <= 0) delete inv[fishName];
-            
-            userGold.set(userId, (userGold.get(userId) || 0) + earned);
-            inventories.set(userId, inv);
-            
-            // 판매 결과 메시지
-            const result = `[${time}] 💰 ${nickname}님이 ${fishName} ${quantity}마리를 판매하여 ${formatPrice(earned)}원을 획득했습니다! 현재 골드: ${formatPrice(userGold.get(userId))}원`;
-            saveLog(room, result, nickname, userId);
-            broadcast(room, { type: 'chat', text: result });
-            
-            // 데이터베이스 저장
-            saveDatabase();
             return;
           }
           
