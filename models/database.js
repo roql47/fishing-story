@@ -50,8 +50,8 @@ const goldSchema = new mongoose.Schema({
 const chatLogSchema = new mongoose.Schema({
   room: { type: String, required: true },
   content: { type: String, required: true },
-  username: { type: String, required: false },
-  userId: { type: String, required: false },
+  username: { type: String },
+  userId: { type: String },
   timestamp: { type: Date, default: Date.now }
 });
 
