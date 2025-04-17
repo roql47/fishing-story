@@ -697,7 +697,19 @@
         
         // 상점 탭이 활성화되면 상품 목록 표시
         if (tabId === 'shop') {
-          loadShopItems('rods'); // 기본적으로 낚시대 카테고리 표시
+          // 현재 활성화된 카테고리 확인
+          const activeCategory = document.querySelector('.shop-category.active');
+          if (activeCategory) {
+            const categoryId = activeCategory.getAttribute('data-category');
+            loadShopItems(categoryId);
+          } else {
+            // 기본 카테고리 설정 (낚시대)
+            const rodCategory = document.querySelector('.shop-category[data-category="rods"]');
+            if (rodCategory) {
+              rodCategory.classList.add('active');
+              loadShopItems('rods');
+            }
+          }
         }
       });
     });
@@ -750,37 +762,50 @@
       const container = document.getElementById('shop-items-container');
       if (!container) return;
       
-      container.innerHTML = '';
+      container.innerHTML = ''; // 기존 내용 비우기
       
-      for (const [itemName, details] of Object.entries(shopItems)) {
-        if (details.category === category) {
-          const itemElement = document.createElement('div');
-          itemElement.className = 'shop-item';
-          
-          let priceText = '';
-          if (details.materialsRequired) {
-            const materials = Object.entries(details.materialsRequired)
-              .map(([material, quantity]) => `${material} ${quantity}개`)
-              .join(', ');
-            priceText = `💎 필요 재료: ${materials}`;
-          } else if (details.favorability) {
-            priceText = `✨ ${formatPrice(details.price)} 호감도`;
-          } else {
-            priceText = `💰 ${formatPrice(details.price)} 골드`;
-          }
-          
-          itemElement.innerHTML = `
-            <div class="shop-item-info">
-              <div class="shop-item-name">${itemName}</div>
-              <div class="shop-item-desc">${details.description}</div>
-              <div class="shop-item-price">${priceText}</div>
-            </div>
-            <button class="buy-button" data-item="${itemName}">구매하기</button>
-          `;
-          
-          container.appendChild(itemElement);
-        }
+      // 카테고리가 유효한지 확인
+      if (category !== 'rods' && category !== 'accessories' && category !== 'items') {
+        container.innerHTML = '<div class="shop-notice">유효하지 않은 카테고리입니다.</div>';
+        return;
       }
+      
+      // 해당 카테고리의 아이템 필터링
+      const categoryItems = Object.entries(shopItems).filter(([_, item]) => item.category === category);
+      
+      if (categoryItems.length === 0) {
+        container.innerHTML = '<div class="shop-notice">이 카테고리에는 아이템이 없습니다.</div>';
+        return;
+      }
+      
+      // 아이템 목록 생성
+      categoryItems.forEach(([itemName, details]) => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'shop-item';
+        
+        let priceText = '';
+        if (details.materialsRequired) {
+          const materials = Object.entries(details.materialsRequired)
+            .map(([material, quantity]) => `${material} ${quantity}개`)
+            .join(', ');
+          priceText = `💎 필요 재료: ${materials}`;
+        } else if (details.favorability) {
+          priceText = `✨ ${formatPrice(details.price)} 호감도`;
+        } else {
+          priceText = `💰 ${formatPrice(details.price)} 골드`;
+        }
+        
+        itemElement.innerHTML = `
+          <div class="shop-item-info">
+            <div class="shop-item-name">${itemName}</div>
+            <div class="shop-item-desc">${details.description}</div>
+            <div class="shop-item-price">${priceText}</div>
+          </div>
+          <button class="buy-button" data-item="${itemName}" data-price="${details.price || 0}">구매하기</button>
+        `;
+        
+        container.appendChild(itemElement);
+      });
       
       // 구매 버튼 이벤트 리스너 설정
       setupBuyButtons();
