@@ -220,69 +220,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 현재 메모리 데이터를 MongoDB에 저장하기
-async function saveDatabase() {
-  if (!isConnected()) {
-    console.log('MongoDB 연결이 준비되지 않아 데이터베이스 저장을 건너뜁니다.');
-    return;
-  }
-
-  try {
-    const savePromises = [];
-    
-    // 인벤토리 저장
-    for (const [userId, items] of inventories) {
-      savePromises.push(
-        Inventory.findOneAndUpdate(
-          { userId },
-          { userId, items },
-          { upsert: true }
-        ).catch(e => console.error(`인벤토리 저장 에러 (${userId}):`, e))
-      );
-    }
-    
-    // 골드 저장
-    for (const [userId, amount] of userGold) {
-      savePromises.push(
-        Gold.findOneAndUpdate(
-          { userId },
-          { userId, amount },
-          { upsert: true }
-        ).catch(e => console.error(`골드 저장 에러 (${userId}):`, e))
-      );
-    }
-    
-    // 탐사 데이터를 파일로 저장
-    try {
-      const explorationStatusPath = path.join(__dirname, 'data', 'explorationStatus.json');
-      const explorationTimesPath = path.join(__dirname, 'data', 'lastExplorationTime.json');
-      
-      // 디렉토리 확인 및 생성
-      const dataDir = path.join(__dirname, 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      
-      // 탐사 상태 데이터
-      const explorationData = [...explorationStatus.entries()].map(([userId, data]) => ({ userId, data }));
-      fs.writeFileSync(explorationStatusPath, JSON.stringify(explorationData, null, 2));
-      
-      // 마지막 탐사 시간 데이터
-      const explorationTimes = [...lastExplorationTime.entries()].map(([userId, time]) => ({ userId, time }));
-      fs.writeFileSync(explorationTimesPath, JSON.stringify(explorationTimes, null, 2));
-      
-      console.log('탐사 데이터 저장 완료');
-    } catch (e) {
-      console.error('탐사 데이터 저장 에러:', e);
-    }
-    
-    // 모든 저장 작업 병렬 처리
-    await Promise.allSettled(savePromises);
-  } catch (e) {
-    console.error("데이터베이스 저장 에러:", e);
-  }
-}
-
 // 낚시대 및 악세사리 정보
 const rodNames = {
   0: "맨손",
