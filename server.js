@@ -216,6 +216,7 @@ async function loadDatabase() {
   try {
     const inventoriesData = await Inventory.find({});
     const goldData = await Gold.find({});
+    const fishingSkillData = await FishingSkill.find({});
     
     for (const inv of inventoriesData) {
       inventories.set(inv.userId, inv.items);
@@ -223,6 +224,10 @@ async function loadDatabase() {
     
     for (const gold of goldData) {
       userGold.set(gold.userId, gold.amount);
+    }
+    
+    for (const skill of fishingSkillData) {
+      fishingSkills.set(skill.userId, skill.level);
     }
     
     console.log('데이터베이스 로드 완료');
@@ -879,7 +884,7 @@ async function initializeServer() {
                 userId: targetUserId,
                 inventory: items,
                 gold: gold,
-                skillLevel: fishingSkills.get(targetUserId) || 0
+                skillLevel: fishingSkills.get(targetUserId) || 1
               };
               ws.send(JSON.stringify(info));
               
@@ -1033,16 +1038,7 @@ async function initializeServer() {
           for (const key in rodNames) {
             if (rodNames[key] === item) {
               // 순차적 구매 체크 (이전 등급의 낚시대 필요)
-              const currentRodLevel = parseInt(Object.keys(rodNames).findIndex(k => rodNames[k] === equippedRod.get(userId)));
               const newRodLevel = parseInt(key);
-              
-              if (newRodLevel > 1 && newRodLevel > currentRodLevel + 1) {
-                ws.send(JSON.stringify({
-                  type: 'chat',
-                  text: `[${time}] ⚠️ ${item}을(를) 구매하려면 먼저 이전 단계 낚시대를 구매해야 합니다.`
-                }));
-                return;
-              }
               
               // 이미 같은 등급의 낚시대를 소유하고 있는지 확인
               if (inv[item] && inv[item] > 0) {
@@ -1051,6 +1047,18 @@ async function initializeServer() {
                   text: `[${time}] ⚠️ 이미 ${item}을(를) 소유하고 있습니다.`
                 }));
                 return;
+              }
+              
+              // 이전 단계 낚시대를 보유하고 있는지 확인
+              if (newRodLevel > 1) {
+                const prevRodName = rodNames[newRodLevel - 1];
+                if (!inv[prevRodName] || inv[prevRodName] <= 0) {
+                  ws.send(JSON.stringify({
+                    type: 'chat',
+                    text: `[${time}] ⚠️ ${item}을(를) 구매하려면 먼저 이전 단계 낚시대(${prevRodName})를 구매해야 합니다.`
+                  }));
+                  return;
+                }
               }
               
               // 골드 차감
@@ -1089,16 +1097,7 @@ async function initializeServer() {
             for (const key in accessoryNames) {
               if (accessoryNames[key] === item) {
                 // 순차적 구매 체크 (이전 등급의 악세사리 필요)
-                const currentAccessoryLevel = parseInt(Object.keys(accessoryNames).findIndex(k => accessoryNames[k] === equippedAccessory.get(userId)));
                 const newAccessoryLevel = parseInt(key);
-                
-                if (newAccessoryLevel > 1 && newAccessoryLevel > currentAccessoryLevel + 1) {
-                  ws.send(JSON.stringify({
-                    type: 'chat',
-                    text: `[${time}] ⚠️ ${item}을(를) 구매하려면 먼저 이전 단계 악세사리를 구매해야 합니다.`
-                  }));
-                  return;
-                }
                 
                 // 이미 같은 등급의 악세사리를 소유하고 있는지 확인
                 if (inv[item] && inv[item] > 0) {
@@ -1107,6 +1106,18 @@ async function initializeServer() {
                     text: `[${time}] ⚠️ 이미 ${item}을(를) 소유하고 있습니다.`
                   }));
                   return;
+                }
+                
+                // 이전 단계 악세사리를 보유하고 있는지 확인
+                if (newAccessoryLevel > 1) {
+                  const prevAccessoryName = accessoryNames[newAccessoryLevel - 1];
+                  if (!inv[prevAccessoryName] || inv[prevAccessoryName] <= 0) {
+                    ws.send(JSON.stringify({
+                      type: 'chat',
+                      text: `[${time}] ⚠️ ${item}을(를) 구매하려면 먼저 이전 단계 악세사리(${prevAccessoryName})를 구매해야 합니다.`
+                    }));
+                    return;
+                  }
                 }
                 
                 // 골드 차감
