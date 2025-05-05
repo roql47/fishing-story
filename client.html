@@ -340,12 +340,73 @@
       color: #f8c537;
       font-weight: bold;
     }
+    /* 물고기 정보 드롭다운 스타일 */
+    .fish-info-dropdown {
+      position: relative;
+      display: inline-block;
+      margin-left: 10px;
+    }
+    
+    .fish-info-btn {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 0.8em;
+    }
+    
+    .fish-info-content {
+      display: none;
+      position: absolute;
+      background-color: #fff;
+      min-width: 300px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 5px;
+      padding: 10px;
+      right: 0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .fish-info-content table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .fish-info-content th, .fish-info-content td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    
+    .fish-info-content th {
+      background-color: #f2f2f2;
+    }
+    
+    .fish-info-content tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    .fish-info-dropdown:hover .fish-info-content {
+      display: block;
+    }
   </style>
 </head>
 <body>
   <!-- 인증 컨테이너 -->
   <div id="authContainer" class="auth-container">
-    <h1>🎣 낚시 채팅방 <span style="font-size: 0.6em; color: #666;">V1.0</span></h1>
+    <h1>🎣 낚시 채팅방 <span style="font-size: 0.6em; color: #666;">V1.0</span>
+      <div class="fish-info-dropdown">
+        <button class="fish-info-btn">낚시 정보</button>
+        <div class="fish-info-content" id="fishInfoContent">
+          <h4>내가 낚을 수 있는 물고기</h4>
+          <div id="currentFishInfo">로딩 중...</div>
+        </div>
+      </div>
+    </h1>
     
     <!-- 로그인 폼 -->
     <div id="loginForm" class="auth-form">
@@ -379,7 +440,15 @@
   <!-- 채팅 컨테이너 -->
   <div id="chatContainer" style="width: 100%; display: flex;">
     <div class="chat-container">
-      <h1>🎣 낚시 채팅방 <span style="font-size: 0.6em; color: #666;">V1.0</span></h1>
+      <h1>🎣 낚시 채팅방 <span style="font-size: 0.6em; color: #666;">V1.0</span>
+        <div class="fish-info-dropdown">
+          <button class="fish-info-btn">낚시 정보</button>
+          <div class="fish-info-content" id="fishInfoContent">
+            <h4>내가 낚을 수 있는 물고기</h4>
+            <div id="currentFishInfo">로딩 중...</div>
+          </div>
+        </div>
+      </h1>
       
       <div id="userInfo" class="user-info">
         <span id="userInfoText" class="user-info-text">게스트로 로그인됨</span>
@@ -1126,6 +1195,175 @@
         closeInventoryModal();
       }
     };
+
+    // 물고기 정보 관련 변수 선언
+    let fishTypes = [];
+    let catchProbabilities = [38.5, 25, 15, 8, 5, 3, 2, 1, 0.7, 0.3, 1];
+    
+    // 스킬 레벨에 따른 낚을 수 있는 물고기 범위 계산 함수
+    function getFishRangeBySkill(skillLevel) {
+      let fishStartIndex = 0, fishEndIndex = 10;
+      
+      if (skillLevel === 2) { fishStartIndex = 1; }
+      else if (skillLevel === 3) { fishStartIndex = 2; fishEndIndex = 11; }
+      else if (skillLevel === 4) { fishStartIndex = 3; fishEndIndex = 12; }
+      else if (skillLevel === 5) { fishStartIndex = 4; fishEndIndex = 13; }
+      else if (skillLevel === 6) { fishStartIndex = 5; fishEndIndex = 14; }
+      else if (skillLevel === 7) { fishStartIndex = 6; fishEndIndex = 15; }
+      else if (skillLevel === 8) { fishStartIndex = 7; fishEndIndex = 16; }
+      else if (skillLevel === 9) { fishStartIndex = 8; fishEndIndex = 17; }
+      else if (skillLevel === 10) { fishStartIndex = 9; fishEndIndex = 18; }
+      else if (skillLevel === 11) { fishStartIndex = 10; fishEndIndex = 19; }
+      else if (skillLevel === 12) { fishStartIndex = 11; fishEndIndex = 20; }
+      else if (skillLevel === 13) { fishStartIndex = 12; fishEndIndex = 21; }
+      else if (skillLevel === 14) { fishStartIndex = 13; fishEndIndex = 22; }
+      else if (skillLevel === 15) { fishStartIndex = 14; fishEndIndex = 23; }
+      else if (skillLevel === 16) { fishStartIndex = 15; fishEndIndex = 24; }
+      else if (skillLevel === 17) { fishStartIndex = 16; fishEndIndex = 25; }
+      else if (skillLevel === 18) { fishStartIndex = 17; fishEndIndex = 26; }
+      else if (skillLevel === 19) { fishStartIndex = 18; fishEndIndex = 27; }
+      else if (skillLevel === 20) { fishStartIndex = 19; fishEndIndex = 28; }
+      else if (skillLevel === 21) { fishStartIndex = 20; fishEndIndex = 29; }
+      else if (skillLevel === 22) { fishStartIndex = 21; fishEndIndex = 30; }
+      else if (skillLevel === 23) { fishStartIndex = 22; fishEndIndex = 31; }
+      else if (skillLevel === 24) { fishStartIndex = 23; fishEndIndex = 32; }
+      else if (skillLevel === 25) { fishStartIndex = 24; fishEndIndex = 33; }
+      else if (skillLevel === 26) { fishStartIndex = 25; fishEndIndex = 34; }
+      else if (skillLevel === 27) { fishStartIndex = 26; fishEndIndex = 35; }
+      else if (skillLevel === 28) { fishStartIndex = 27; fishEndIndex = 36; }
+      else if (skillLevel === 29) { fishStartIndex = 28; fishEndIndex = 37; }
+      else if (skillLevel === 30) { fishStartIndex = 29; fishEndIndex = 38; }
+      else if (skillLevel >= 31) { fishStartIndex = 30; fishEndIndex = 39; }
+      
+      return { start: fishStartIndex, end: fishEndIndex };
+    }
+    
+    // 물고기 확률 정보 업데이트 함수
+    function updateFishInfoDisplay() {
+      const fishInfoContent = document.getElementById('currentFishInfo');
+      if (!fishInfoContent) return;
+      
+      // 낚시 스킬 레벨 가져오기
+      const skillLevel = parseInt(localStorage.getItem('fishingSkillLevel') || '0');
+      
+      // 물고기 데이터가 없는 경우 메시지 표시
+      if (!fishTypes || fishTypes.length === 0) {
+        fishInfoContent.innerHTML = '<p>물고기 정보를 불러오는 중 오류가 발생했습니다.</p>';
+        return;
+      }
+      
+      // 레벨에 따른 물고기 범위 계산
+      const range = getFishRangeBySkill(skillLevel);
+      const effectiveFishTypes = fishTypes.slice(range.start, range.end);
+      
+      // 희귀 물고기 (스타피쉬) 추가
+      const rareFish = fishTypes[fishTypes.length - 1];
+      
+      // 테이블 생성
+      let tableHTML = `
+        <table>
+          <tr>
+            <th>물고기</th>
+            <th>확률</th>
+            <th>판매가</th>
+          </tr>
+      `;
+      
+      // 일반 물고기 정보 추가
+      for (let i = 0; i < effectiveFishTypes.length; i++) {
+        const fish = effectiveFishTypes[i];
+        const probability = i < catchProbabilities.length ? catchProbabilities[i] : 0;
+        
+        tableHTML += `
+          <tr>
+            <td>${fish.name}</td>
+            <td>${probability}%</td>
+            <td>${formatPrice(fish.price)}원</td>
+          </tr>
+        `;
+      }
+      
+      // 희귀 물고기 정보 추가
+      tableHTML += `
+        <tr>
+          <td>${rareFish.name} (희귀)</td>
+          <td>0.5%</td>
+          <td>${formatPrice(rareFish.price)}원</td>
+        </tr>
+      `;
+      
+      tableHTML += '</table>';
+      
+      // 낚시 스킬 정보 추가
+      tableHTML += `
+        <div style="margin-top: 10px; padding: 5px; background-color: #f0f8ff; border-radius: 5px;">
+          <p>현재 낚시 스킬 레벨: ${skillLevel}</p>
+          <p>다음 레벨 낚시대를 구매하면 더 좋은 물고기를 낚을 수 있습니다!</p>
+        </div>
+      `;
+      
+      fishInfoContent.innerHTML = tableHTML;
+    }
+    
+    // 물고기 데이터 로드 함수
+    function loadFishData() {
+      // 서버에서 물고기 데이터 가져오기
+      fetch('/api/fish-data')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            fishTypes = data.fishTypes;
+            if (data.catchProbabilities) {
+              catchProbabilities = data.catchProbabilities;
+            }
+            updateFishInfoDisplay();
+          }
+        })
+        .catch(error => {
+          console.error('물고기 데이터 로드 오류:', error);
+          // 기본 물고기 정보 설정 (오류 시 기본값)
+          fishTypes = [
+            { name: '타코문어', price: 300 },
+            { name: '풀고등어', price: 700 },
+            { name: '경단붕어', price: 1500 },
+            { name: '버터오징어', price: 8000 },
+            { name: '간장새우', price: 15000 },
+            { name: '물수수', price: 30000 },
+            { name: '정어리파이', price: 40000 },
+            { name: '얼음상어', price: 50000 },
+            { name: '스퀄스퀴드', price: 60000 },
+            { name: '백년송거북', price: 100000 }
+          ];
+          updateFishInfoDisplay();
+        });
+    }
+    
+    // 페이지 로드 시 물고기 데이터 로드
+    document.addEventListener('DOMContentLoaded', function() {
+      loadFishData();
+      
+      // 소켓 메시지 처리에 낚시 스킬 레벨 업데이트 로직 추가
+      const originalOnmessage = socket ? socket.onmessage : null;
+      if (socket) {
+        socket.onmessage = function(event) {
+          // 기존 이벤트 핸들러 호출
+          if (originalOnmessage) {
+            originalOnmessage.call(socket, event);
+          }
+          
+          // 사용자 정보 메시지에서 낚시 스킬 레벨 추출
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'userInfo' && data.skillLevel !== undefined) {
+              localStorage.setItem('fishingSkillLevel', data.skillLevel);
+              updateFishInfoDisplay();
+            }
+          } catch (e) {
+            console.error('메시지 처리 오류:', e);
+          }
+        };
+      }
+    });
   </script>
 </body>
 </html>
