@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { fishTypes, rodNames, accessoryNames } = require('../data/gameData');
-const { Inventory, Gold, isConnected, User } = require('../models/database');
+const { Inventory, Gold, isConnected, User, FishingSkill } = require('../models/database');
 const mongoose = require('mongoose');
 
 // 게임 상태 데이터 (메모리 데이터)
@@ -579,6 +579,7 @@ async function loadDatabase() {
   try {
     const inventoriesData = await Inventory.find({});
     const goldData = await Gold.find({});
+    const fishingSkillData = await FishingSkill.find({});
     
     for (const inv of inventoriesData) {
       inventories.set(inv.userId, inv.items);
@@ -586,6 +587,10 @@ async function loadDatabase() {
     
     for (const gold of goldData) {
       userGold.set(gold.userId, gold.amount);
+    }
+    
+    for (const skill of fishingSkillData) {
+      fishingSkills.set(skill.userId, skill.level);
     }
     
     console.log('데이터베이스 로드 완료');
@@ -637,6 +642,19 @@ async function saveDatabase() {
           { userId, amount },
           { upsert: true, new: true }
         ).catch(e => console.error(`골드 저장 에러 (${userId}):`, e))
+      );
+    }
+    
+    // 낚시 스킬 레벨 저장
+    for (const [userId, level] of fishingSkills) {
+      console.log(`낚시 스킬 레벨 저장 시도 (${userId}): ${level}`);
+      
+      savePromises.push(
+        FishingSkill.findOneAndUpdate(
+          { userId },
+          { userId, level },
+          { upsert: true, new: true }
+        ).catch(e => console.error(`낚시 스킬 레벨 저장 에러 (${userId}):`, e))
       );
     }
     
