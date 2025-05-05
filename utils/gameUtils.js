@@ -411,11 +411,14 @@ function getBaseEnemyHP(originalFishName) {
 
 // 탐사 시작 함수
 function startExplore(userId, materialName, nickname) {
+  console.log(`탐사 시도: ${userId}, 재료: ${materialName}, 인벤토리:`, inventories.get(userId));
+  
   if (!inventories.has(userId)) {
     return `인벤토리가 존재하지 않습니다.`;
   }
   
   const userInventory = inventories.get(userId);
+  console.log(`사용자 인벤토리:`, userInventory);
   
   // 재료 아이템 확인
   if (!userInventory[materialName] || userInventory[materialName] <= 0) {
@@ -446,6 +449,7 @@ function startExplore(userId, materialName, nickname) {
     delete userInventory[materialName];
   }
   inventories.set(userId, userInventory);
+  console.log(`재료 소비 후 인벤토리:`, userInventory);
   
   // 쿨다운 설정
   exploreCooldown.set(userId, now);
