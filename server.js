@@ -49,9 +49,10 @@ app.get('/admin', (req, res) => {
 // Map: WebSocket → { userId, nickname, room }
 const clients = new Map();
 // Map: userId → { 물고기명: 개수 }
-const inventories = new Map();
+// inventories와 userGold는 이미 gameUtils.js에서 import 하고 있으므로 중복 선언을 제거
+// const inventories = new Map();
 // Map: userId → 골드 (숫자)
-const userGold = new Map();
+// const userGold = new Map();
 // Map: username → { password, uuid }
 const users = new Map();
 
