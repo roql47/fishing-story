@@ -13,7 +13,7 @@
       margin: auto;
       display: flex;
       flex-direction: row;
-      gap: 20px;
+      gap: 25px;
     }
     .chat-container {
       flex: 1;
@@ -521,7 +521,8 @@
       width: 220px;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 20px;
+      margin-left: 15px;
     }
     
     /* 낚시 정보 위젯 스타일 */
@@ -561,7 +562,7 @@
     }
     
     .fishing-info-content {
-      padding: 15px;
+      padding: 18px;
       max-height: 500px;
       overflow-y: auto;
       transition: max-height 0.3s ease;
@@ -709,14 +710,7 @@
 <body>
   <!-- 인증 컨테이너 -->
   <div id="authContainer" class="auth-container">
-    <h1>🎣 여우이야기 <span style="font-size: 0.6em; color: #666;">V1.0</span>
-      <div class="fish-info-dropdown">
-        <button class="fish-info-btn">🐟 낚시 정보</button>
-        <div class="fish-info-content" id="fishInfoContent">
-          <div id="currentFishInfo">로딩 중...</div>
-        </div>
-      </div>
-    </h1>
+    <h1>🎣 여우이야기 <span style="font-size: 0.6em; color: #666;">V1.0</span></h1>
     
     <!-- 로그인 폼 -->
     <div id="loginForm" class="auth-form">
@@ -1051,7 +1045,7 @@
           // 사용자 정보 표시
           userInfoText.textContent = `${currentUser.username}으로 로그인됨 (UUID: ${currentUser.uuid.substring(0, 8)}...)`;
           
-          // 낚시 데이터 로드 (새로 추가)
+          // 낚시 데이터 로드 (새로운 코드)
           loadFishData();
           
           // 화면 전환
@@ -1562,18 +1556,8 @@
     
     // 물고기 확률 정보 업데이트 함수
     function updateFishInfoDisplay() {
-      // 현재 화면에 맞는 currentFishInfo 요소 찾기
-      let fishInfoContent;
-      
-      // 로그인 화면과 메인 화면의 currentFishInfo 요소 모두 찾아보기
-      const authContainer = document.getElementById('authContainer');
-      if (authContainer.style.display !== 'none') {
-        // 로그인 화면일 때
-        fishInfoContent = document.getElementById('fishInfoContent').querySelector('#currentFishInfo');
-      } else {
-        // 메인 화면일 때
-        fishInfoContent = document.querySelector('.fishing-info-content').querySelector('#currentFishInfo');
-      }
+      // 메인 화면의 currentFishInfo 요소 찾기
+      const fishInfoContent = document.querySelector('.fishing-info-content').querySelector('#currentFishInfo');
       
       if (!fishInfoContent) {
         console.error("currentFishInfo 요소를 찾을 수 없습니다.");
