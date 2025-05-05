@@ -49,47 +49,47 @@ const users = new Map();
 
 // 물고기 종류 정보
 const fishTypes = [
-  { name: '타코문어', chance: 0.3, price: 300, material: "문어다리" },
-  { name: '풀고등어', chance: 0.2, price: 700, material: "고등어비늘" },
-  { name: '경단붕어', chance: 0.15, price: 1500, material: "당고" },
-  { name: '버터오징어', chance: 0.1, price: 8000, material: "버터조각" },
-  { name: '간장새우', chance: 0.08, price: 15000, material: "간장종지" },
-  { name: '물수수', chance: 0.05, price: 30000, material: "옥수수콘" },
-  { name: '정어리파이', chance: 0.04, price: 40000, material: "버터" },
-  { name: '얼음상어', chance: 0.03, price: 50000, material: "얼음조각" },
-  { name: '스퀄스퀴드', chance: 0.02, price: 60000, material: "오징어먹물" },
-  { name: '백년송거북', chance: 0.01, price: 100000, material: "백년송" },
-  { name: '고스피쉬', chance: 0.008, price: 150000, material: "후춧가루" },
-  { name: '유령치', chance: 0.005, price: 230000, material: "석화" },
-  { name: '바이트독', chance: 0.003, price: 470000, material: "핫소스" },
-  { name: '호박고래', chance: 0.002, price: 700000, material: "펌킨조각" },
-  { name: '바이킹조개', chance: 0.001, price: 1250000, material: "꽃술" },
-  { name: '천사해파리', chance: 0.0008, price: 2440000, material: "프레첼" },
-  { name: '악마복어', chance: 0.0005, price: 4100000, material: "베놈" },
-  { name: '칠성장어', chance: 0.0003, price: 6600000, material: "장어꼬리" },
-  { name: '닥터블랙', chance: 0.0002, price: 9320000, material: "아인스바인" },
-  { name: '해룡', chance: 0.0001, price: 14400000, material: "헤븐즈서펀트" },
-  { name: '메카핫킹크랩', chance: 0.00008, price: 27950000, material: "집게다리" },
-  { name: '램프리', chance: 0.00006, price: 46400000, material: "이즈니버터" },
-  { name: '마지막잎새', chance: 0.00004, price: 76500000, material: "라벤더오일" },
-  { name: '아이스브리더', chance: 0.00003, price: 131200000, material: "샤베트" },
-  { name: '해신', chance: 0.00002, price: 288000000, material: "마법의정수" },
-  { name: '핑키피쉬', chance: 0.000015, price: 418600000, material: "휘핑크림" },
-  { name: '콘토퍼스', chance: 0.00001, price: 731560000, material: "와플리머신" },
-  { name: '딥원', chance: 0.000008, price: 1026400000, material: "베르쥬스" },
-  { name: '큐틀루', chance: 0.000006, price: 1477500000, material: "안쵸비" },
-  { name: '꽃술나리', chance: 0.000004, price: 2092000000, material: "핑크멜로우" },
-  { name: '다무스', chance: 0.000003, price: 2633200000, material: "와일드갈릭" },
-  { name: '수호자', chance: 0.000002, price: 3427900000, material: "그루누아" },
-  { name: '태양가사리', chance: 0.0000015, price: 6483100000, material: "시더플랭크" },
-  { name: '빅파더펭귄', chance: 0.000001, price: 9887600000, material: "세비체" },
-  { name: '크레인터틀', chance: 0.0000008, price: 15124000000, material: "타파스" },
-  { name: 'CSP-765 조립식생선', chance: 0.0000006, price: 19580000000, material: "트러플리소토" },
-  { name: '데드케이지', chance: 0.0000004, price: 25420000000, material: "캐비아소스" },
-  { name: '다크암모나이트', chance: 0.0000003, price: 31780000000, material: "푸아그라에스푸마" },
-  { name: '조가비여인', chance: 0.0000002, price: 38240000000, material: "샴페인젤리" },
-  { name: '10개통고래', chance: 0.0000001, price: 45360000000, material: "금박마카롱" },
-  { name: '스타피쉬', chance: 0.005, price: 100, material: "별조각" }
+  { name: '타코문어', price: 300, material: "문어다리" },
+  { name: '풀고등어', price: 700, material: "고등어비늘" },
+  { name: '경단붕어', price: 1500, material: "당고" },
+  { name: '버터오징어', price: 8000, material: "버터조각" },
+  { name: '간장새우', price: 15000, material: "간장종지" },
+  { name: '물수수', price: 30000, material: "옥수수콘" },
+  { name: '정어리파이', price: 40000, material: "버터" },
+  { name: '얼음상어', price: 50000, material: "얼음조각" },
+  { name: '스퀄스퀴드', price: 60000, material: "오징어먹물" },
+  { name: '백년송거북', price: 100000, material: "백년송" },
+  { name: '고스피쉬', price: 150000, material: "후춧가루" },
+  { name: '유령치', price: 230000, material: "석화" },
+  { name: '바이트독', price: 470000, material: "핫소스" },
+  { name: '호박고래', price: 700000, material: "펌킨조각" },
+  { name: '바이킹조개', price: 1250000, material: "꽃술" },
+  { name: '천사해파리', price: 2440000, material: "프레첼" },
+  { name: '악마복어', price: 4100000, material: "베놈" },
+  { name: '칠성장어', price: 6600000, material: "장어꼬리" },
+  { name: '닥터블랙', price: 9320000, material: "아인스바인" },
+  { name: '해룡', price: 14400000, material: "헤븐즈서펀트" },
+  { name: '메카핫킹크랩', price: 27950000, material: "집게다리" },
+  { name: '램프리', price: 46400000, material: "이즈니버터" },
+  { name: '마지막잎새', price: 76500000, material: "라벤더오일" },
+  { name: '아이스브리더', price: 131200000, material: "샤베트" },
+  { name: '해신', price: 288000000, material: "마법의정수" },
+  { name: '핑키피쉬', price: 418600000, material: "휘핑크림" },
+  { name: '콘토퍼스', price: 731560000, material: "와플리머신" },
+  { name: '딥원', price: 1026400000, material: "베르쥬스" },
+  { name: '큐틀루', price: 1477500000, material: "안쵸비" },
+  { name: '꽃술나리', price: 2092000000, material: "핑크멜로우" },
+  { name: '다무스', price: 2633200000, material: "와일드갈릭" },
+  { name: '수호자', price: 3427900000, material: "그루누아" },
+  { name: '태양가사리', price: 6483100000, material: "시더플랭크" },
+  { name: '빅파더펭귄', price: 9887600000, material: "세비체" },
+  { name: '크레인터틀', price: 15124000000, material: "타파스" },
+  { name: 'CSP-765 조립식생선', price: 19580000000, material: "트러플리소토" },
+  { name: '데드케이지', price: 25420000000, material: "캐비아소스" },
+  { name: '다크암모나이트', price: 31780000000, material: "푸아그라에스푸마" },
+  { name: '조가비여인', price: 38240000000, material: "샴페인젤리" },
+  { name: '10개통고래', price: 45360000000, material: "금박마카롱" },
+  { name: '스타피쉬', price: 100, material: "별조각" }
 ];
 
 // 낚시 확률 배열 (물고기 선택 시 사용)
@@ -473,18 +473,29 @@ function showInventory(userId, nickname) {
   return result;
 }
 
-function getRandomFish() {
-  const rand = Math.random();
-  let total = 0;
-  for (const fish of fishTypes) {
-    total += fish.chance;
-    if (rand < total) return fish;
-  }
-  return fishTypes[0];
-}
-
 function getTime() {
   return new Date().toLocaleTimeString();
+}
+
+// 랜덤 물고기 획득 함수 (catchProbabilities 사용)
+function getRandomFish() {
+  // 희귀 물고기 (스타피쉬) 확률 체크
+  if (Math.random() < 0.005) {
+    return fishTypes[fishTypes.length - 1]; // 스타피쉬
+  }
+  
+  const rand = Math.random() * 100;
+  let cumulativeProbability = 0;
+  
+  for (let i = 0; i < Math.min(catchProbabilities.length, fishTypes.length); i++) {
+    cumulativeProbability += catchProbabilities[i];
+    if (rand < cumulativeProbability) {
+      return fishTypes[i];
+    }
+  }
+  
+  // 기본값 설정 (확률이 맞지 않는 경우를 대비)
+  return fishTypes[0];
 }
 
 function broadcast(room, messageObj) {
@@ -1142,11 +1153,20 @@ async function initializeServer() {
             const accessory = equippedAccessory.get(userId) || accessoryNames[0];
             
             switch(accessory) {
-              case "오래된반지": cooldownTime = 285000; break; // 4분 45초
-              case "은목걸이": cooldownTime = 270000; break; // 4분 30초
-              case "금귀걸이": cooldownTime = 255000; break; // 4분 15초
-              case "마법의펜던트": cooldownTime = 240000; break; // 4분
-              default: cooldownTime = 300000; break; // 5분
+              case "오래된반지": cooldownTime = 285000; break;
+              case "은목걸이": cooldownTime = 270000; break;
+              case "금귀걸이": cooldownTime = 255000; break;
+              case "마법의펜던트": cooldownTime = 240000; break;
+              case "에메랄드브로치": cooldownTime = 225000; break;
+              case "토파즈이어링": cooldownTime = 210000; break;
+              case "자수정팔찌": cooldownTime = 195000; break;
+              case "백금티아라": cooldownTime = 180000; break;
+              case "만드라고라허브": cooldownTime = 165000; break;
+              case "에테르나무묘목": cooldownTime = 150000; break;
+              case "몽마의조각상": cooldownTime = 135000; break;
+              case "마카롱훈장": cooldownTime = 120000; break;
+              case "빛나는마력순환체": cooldownTime = 105000; break;
+              default: cooldownTime = 300000; break;
             }
             
             if (lastFishingTime.has(userId) && (currentTime - lastFishingTime.get(userId)) < cooldownTime) {
@@ -1162,18 +1182,36 @@ async function initializeServer() {
             const skillLevel = fishingSkills.get(userId) || 0;
             let fishStartIndex = 0, fishEndIndex = 10;
             
-            if (skillLevel >= 5) {
-              fishStartIndex = 1;
-              fishEndIndex = 11;
-            }
-            if (skillLevel >= 10) {
-              fishStartIndex = 2;
-              fishEndIndex = 12;
-            }
-            if (skillLevel >= 15) {
-              fishStartIndex = 3;
-              fishEndIndex = 13;
-            }
+            if (skillLevel === 2) { fishStartIndex = 1; }
+            else if (skillLevel === 3) { fishStartIndex = 2; fishEndIndex = 11; }
+            else if (skillLevel === 4) { fishStartIndex = 3; fishEndIndex = 12; }
+            else if (skillLevel === 5) { fishStartIndex = 4; fishEndIndex = 13; }
+            else if (skillLevel === 6) { fishStartIndex = 5; fishEndIndex = 14; }
+            else if (skillLevel === 7) { fishStartIndex = 6; fishEndIndex = 15; }
+            else if (skillLevel === 8) { fishStartIndex = 7; fishEndIndex = 16; }
+            else if (skillLevel === 9) { fishStartIndex = 8; fishEndIndex = 17; }
+            else if (skillLevel === 10) { fishStartIndex = 9; fishEndIndex = 18; }
+            else if (skillLevel === 11) { fishStartIndex = 10; fishEndIndex = 19; }
+            else if (skillLevel === 12) { fishStartIndex = 11; fishEndIndex = 20; }
+            else if (skillLevel === 13) { fishStartIndex = 12; fishEndIndex = 21; }
+            else if (skillLevel === 14) { fishStartIndex = 13; fishEndIndex = 22; }
+            else if (skillLevel === 15) { fishStartIndex = 14; fishEndIndex = 23; }
+            else if (skillLevel === 16) { fishStartIndex = 15; fishEndIndex = 24; }
+            else if (skillLevel === 17) { fishStartIndex = 16; fishEndIndex = 25; }
+            else if (skillLevel === 18) { fishStartIndex = 17; fishEndIndex = 26; }
+            else if (skillLevel === 19) { fishStartIndex = 18; fishEndIndex = 27; }
+            else if (skillLevel === 20) { fishStartIndex = 19; fishEndIndex = 28; }
+            else if (skillLevel === 21) { fishStartIndex = 20; fishEndIndex = 29; }
+            else if (skillLevel === 22) { fishStartIndex = 21; fishEndIndex = 30; }
+            else if (skillLevel === 23) { fishStartIndex = 22; fishEndIndex = 31; }
+            else if (skillLevel === 24) { fishStartIndex = 23; fishEndIndex = 32; }
+            else if (skillLevel === 25) { fishStartIndex = 24; fishEndIndex = 33; }
+            else if (skillLevel === 26) { fishStartIndex = 25; fishEndIndex = 34; }
+            else if (skillLevel === 27) { fishStartIndex = 26; fishEndIndex = 35; }
+            else if (skillLevel === 28) { fishStartIndex = 27; fishEndIndex = 36; }
+            else if (skillLevel === 29) { fishStartIndex = 28; fishEndIndex = 37; }
+            else if (skillLevel === 30) { fishStartIndex = 29; fishEndIndex = 38; }
+            else if (skillLevel >= 31) { fishStartIndex = 30; fishEndIndex = 39; }
             
             const effectiveFishTypes = fishTypes.slice(fishStartIndex, fishEndIndex);
             
@@ -1304,10 +1342,19 @@ async function initializeServer() {
                 let bonusMultiplier = 1.0;
                 
                 switch(accessory) {
-                  case "오래된반지": bonusMultiplier = 1.05; break;
-                  case "은목걸이": bonusMultiplier = 1.10; break;
-                  case "금귀걸이": bonusMultiplier = 1.15; break;
-                  case "마법의펜던트": bonusMultiplier = 1.20; break;
+                  case "오래된반지": bonusMultiplier = 1.08; break;
+                  case "은목걸이": bonusMultiplier = 1.16; break;
+                  case "금귀걸이": bonusMultiplier = 1.24; break;
+                  case "마법의펜던트": bonusMultiplier = 1.32; break;
+                  case "에메랄드브로치": bonusMultiplier = 1.40; break;
+                  case "토파즈이어링": bonusMultiplier = 1.48; break;
+                  case "자수정팔찌": bonusMultiplier = 1.56; break;
+                  case "백금티아라": bonusMultiplier = 1.64; break;
+                  case "만드라고라허브": bonusMultiplier = 1.72; break;
+                  case "에테르나무묘목": bonusMultiplier = 1.84; break;
+                  case "몽마의조각상": bonusMultiplier = 1.92; break;
+                  case "마카롱훈장": bonusMultiplier = 2.0; break;
+                  case "빛나는마력순환체": bonusMultiplier = 2.08; break;
                   default: bonusMultiplier = 1.0; break;
                 }
                 
@@ -1421,10 +1468,19 @@ async function initializeServer() {
                 let bonusMultiplier = 1.0;
                 
                 switch(accessory) {
-                  case "오래된반지": bonusMultiplier = 1.05; break;
-                  case "은목걸이": bonusMultiplier = 1.10; break;
-                  case "금귀걸이": bonusMultiplier = 1.15; break;
-                  case "마법의펜던트": bonusMultiplier = 1.20; break;
+                  case "오래된반지": bonusMultiplier = 1.08; break;
+                  case "은목걸이": bonusMultiplier = 1.16; break;
+                  case "금귀걸이": bonusMultiplier = 1.24; break;
+                  case "마법의펜던트": bonusMultiplier = 1.32; break;
+                  case "에메랄드브로치": bonusMultiplier = 1.40; break;
+                  case "토파즈이어링": bonusMultiplier = 1.48; break;
+                  case "자수정팔찌": bonusMultiplier = 1.56; break;
+                  case "백금티아라": bonusMultiplier = 1.64; break;
+                  case "만드라고라허브": bonusMultiplier = 1.72; break;
+                  case "에테르나무묘목": bonusMultiplier = 1.84; break;
+                  case "몽마의조각상": bonusMultiplier = 1.92; break;
+                  case "마카롱훈장": bonusMultiplier = 2.0; break;
+                  case "빛나는마력순환체": bonusMultiplier = 2.08; break;
                   default: bonusMultiplier = 1.0; break;
                 }
                 
@@ -1627,10 +1683,19 @@ async function initializeServer() {
             let bonusMultiplier = 1.0;
             
             switch(accessory) {
-              case "오래된반지": bonusMultiplier = 1.05; break;
-              case "은목걸이": bonusMultiplier = 1.10; break;
-              case "금귀걸이": bonusMultiplier = 1.15; break;
-              case "마법의펜던트": bonusMultiplier = 1.20; break;
+              case "오래된반지": bonusMultiplier = 1.08; break;
+              case "은목걸이": bonusMultiplier = 1.16; break;
+              case "금귀걸이": bonusMultiplier = 1.24; break;
+              case "마법의펜던트": bonusMultiplier = 1.32; break;
+              case "에메랄드브로치": bonusMultiplier = 1.40; break;
+              case "토파즈이어링": bonusMultiplier = 1.48; break;
+              case "자수정팔찌": bonusMultiplier = 1.56; break;
+              case "백금티아라": bonusMultiplier = 1.64; break;
+              case "만드라고라허브": bonusMultiplier = 1.72; break;
+              case "에테르나무묘목": bonusMultiplier = 1.84; break;
+              case "몽마의조각상": bonusMultiplier = 1.92; break;
+              case "마카롱훈장": bonusMultiplier = 2.0; break;
+              case "빛나는마력순환체": bonusMultiplier = 2.08; break;
               default: bonusMultiplier = 1.0; break;
             }
             
