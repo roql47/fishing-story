@@ -1193,7 +1193,7 @@ async function initializeServer() {
             }
             
             // 낚시 스킬 레벨에 따른 물고기 범위 조정
-            const skillLevel = fishingSkills.get(userId) || 0;
+            const skillLevel = fishingSkills.get(userId) || 1;
             let fishStartIndex = 0, fishEndIndex = 10;
             
             if (skillLevel === 2) { fishStartIndex = 1; }
