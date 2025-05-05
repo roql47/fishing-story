@@ -888,6 +888,9 @@
         // 채팅 화면 보이기
         authContainer.style.display = 'none';
         chatContainer.style.display = 'flex';
+        
+        // 낚시 데이터 로드 (추가)
+        loadFishData();
       }
     }
 
@@ -1559,7 +1562,19 @@
     
     // 물고기 확률 정보 업데이트 함수
     function updateFishInfoDisplay() {
-      const fishInfoContent = document.getElementById('currentFishInfo');
+      // 현재 화면에 맞는 currentFishInfo 요소 찾기
+      let fishInfoContent;
+      
+      // 로그인 화면과 메인 화면의 currentFishInfo 요소 모두 찾아보기
+      const authContainer = document.getElementById('authContainer');
+      if (authContainer.style.display !== 'none') {
+        // 로그인 화면일 때
+        fishInfoContent = document.getElementById('fishInfoContent').querySelector('#currentFishInfo');
+      } else {
+        // 메인 화면일 때
+        fishInfoContent = document.querySelector('.fishing-info-content').querySelector('#currentFishInfo');
+      }
+      
       if (!fishInfoContent) {
         console.error("currentFishInfo 요소를 찾을 수 없습니다.");
         return;
