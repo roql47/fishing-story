@@ -136,19 +136,19 @@ async function loadLocalUsers() {
 }
 
 // 유저 데이터 저장
-async function saveUsers() {
-  try {
-    for (const [username, data] of users) {
-      await User.findOneAndUpdate(
-        { username },
-        { username, password: data.password, uuid: data.uuid },
-        { upsert: true }
-      );
-    }
-  } catch (e) {
-    console.error("유저 데이터베이스 저장 에러:", e);
-  }
-}
+// async function saveUsers() {
+//   try {
+//     for (const [username, data] of users) {
+//       await User.findOneAndUpdate(
+//         { username },
+//         { username, password: data.password, uuid: data.uuid },
+//         { upsert: true }
+//       );
+//     }
+//   } catch (e) {
+//     console.error("유저 데이터베이스 저장 에러:", e);
+//   }
+// }
 
 // 회원가입 API
 app.post('/api/register', async (req, res) => {
