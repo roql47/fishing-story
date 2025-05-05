@@ -9,14 +9,6 @@ const { User, Inventory, Gold, ChatLog, isConnected, connectToMongoDB } = requir
 const userRouter = require('./routes/user');
 const adminRouter = require('./routes/admin');
 const fishingRouter = require('./routes/fishing');
-const { 
-  formatPrice, getRandomFish, showInventory, saveLog, 
-  loadDatabase, saveDatabase, loadUsers, saveUsers,
-  inventories, userGold, equippedRod, equippedAccessory, fishingSkills, lastFishingTime,
-  // 새로운 탐사 관련 함수들
-  getFishingAttackPower, getEnhancedAttackPower, startExplore, executeBattle, cancelBattle,
-  pendingBattle, exploreCooldown, fishMaterialMapping, fishRewardMapping
-} = require('./utils/gameUtils');
 
 // MongoDB 연결 설정
 let mongoConnected = false;
@@ -49,10 +41,9 @@ app.get('/admin', (req, res) => {
 // Map: WebSocket → { userId, nickname, room }
 const clients = new Map();
 // Map: userId → { 물고기명: 개수 }
-// inventories와 userGold는 이미 gameUtils.js에서 import 하고 있으므로 중복 선언을 제거
-// const inventories = new Map();
+const inventories = new Map();
 // Map: userId → 골드 (숫자)
-// const userGold = new Map();
+const userGold = new Map();
 // Map: username → { password, uuid }
 const users = new Map();
 
@@ -105,11 +96,11 @@ const fishTypes = [
 const catchProbabilities = [38.5, 25, 15, 8, 5, 3, 2, 1, 0.7, 0.3, 1];
 
 // 포맷 가격 유틸리티 함수
-// function formatPrice(price) {
-//   // price가 undefined, null일 경우 0을 기본값으로 사용
-//   price = price != null ? price : 0;
-//   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-// }
+function formatPrice(price) {
+  // price가 undefined, null일 경우 0을 기본값으로 사용
+  price = price != null ? price : 0;
+  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
 
 const DB_FILE = path.join(__dirname, 'db.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
@@ -119,8 +110,8 @@ function generateUUID() {
   return crypto.randomUUID();
 }
 
-// 로컬 유저 데이터베이스 로드 함수
-async function loadLocalUsers() {
+// 유저 데이터베이스에서 기존 유저 데이터를 불러오기
+async function loadUsers() {
   try {
     const usersData = await User.find({});
     for (const user of usersData) {
@@ -136,19 +127,19 @@ async function loadLocalUsers() {
 }
 
 // 유저 데이터 저장
-// async function saveUsers() {
-//   try {
-//     for (const [username, data] of users) {
-//       await User.findOneAndUpdate(
-//         { username },
-//         { username, password: data.password, uuid: data.uuid },
-//         { upsert: true }
-//       );
-//     }
-//   } catch (e) {
-//     console.error("유저 데이터베이스 저장 에러:", e);
-//   }
-// }
+async function saveUsers() {
+  try {
+    for (const [username, data] of users) {
+      await User.findOneAndUpdate(
+        { username },
+        { username, password: data.password, uuid: data.uuid },
+        { upsert: true }
+      );
+    }
+  } catch (e) {
+    console.error("유저 데이터베이스 저장 에러:", e);
+  }
+}
 
 // 회원가입 API
 app.post('/api/register', async (req, res) => {
@@ -219,6 +210,65 @@ app.post('/api/login', async (req, res) => {
     return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
+
+// 데이터베이스에서 기존 데이터를 불러오기
+async function loadDatabase() {
+  try {
+    const inventoriesData = await Inventory.find({});
+    const goldData = await Gold.find({});
+    
+    for (const inv of inventoriesData) {
+      inventories.set(inv.userId, inv.items);
+    }
+    
+    for (const gold of goldData) {
+      userGold.set(gold.userId, gold.amount);
+    }
+    
+    console.log('데이터베이스 로드 완료');
+  } catch (e) {
+    console.error("데이터베이스 로드 에러:", e);
+  }
+}
+
+// 현재 메모리 데이터를 MongoDB에 저장하기
+async function saveDatabase() {
+  if (!isConnected()) {
+    console.log('MongoDB 연결이 준비되지 않아 데이터베이스 저장을 건너뜁니다.');
+    return;
+  }
+
+  try {
+    const savePromises = [];
+    
+    // 인벤토리 저장
+    for (const [userId, items] of inventories) {
+      savePromises.push(
+        Inventory.findOneAndUpdate(
+          { userId },
+          { userId, items },
+          { upsert: true }
+        ).catch(e => console.error(`인벤토리 저장 에러 (${userId}):`, e))
+      );
+    }
+    
+    // 골드 저장
+    for (const [userId, amount] of userGold) {
+      savePromises.push(
+        Gold.findOneAndUpdate(
+          { userId },
+          { userId, amount },
+          { upsert: true }
+        ).catch(e => console.error(`골드 저장 에러 (${userId}):`, e))
+      );
+    }
+    
+    // 모든 저장 작업 병렬 처리
+    await Promise.allSettled(savePromises);
+  } catch (e) {
+    console.error("데이터베이스 저장 에러:", e);
+  }
+}
 
 // 낚시대 및 악세사리 정보
 const rodNames = {
@@ -506,20 +556,6 @@ app.get('/api/chatrooms', async (req, res) => {
   }
 });
 
-// 물고기 데이터 API - 클라이언트에서 물고기 정보를 가져갈 수 있도록 함
-app.get('/api/fish-data', (req, res) => {
-  try {
-    res.json({
-      success: true,
-      fishTypes: fishTypes,
-      catchProbabilities: catchProbabilities
-    });
-  } catch (e) {
-    console.error('물고기 데이터 API 에러:', e);
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
 // 관리자 골드 수정 API
 app.post('/api/admin/gold', async (req, res) => {
   const { username, amount, adminKey } = req.body;
@@ -755,25 +791,8 @@ app.post('/api/admin/accessory', async (req, res) => {
   }
 });
 
-// 탐사 관련 API
-app.get('/api/exploration/areas', (req, res) => {
-  res.json({ success: true, areas: explorationAreas });
-});
-
-// 대시보드에 표시할 탐사 상태 API 
-app.get('/api/exploration/status/:userId', (req, res) => {
-  const { userId } = req.params;
-  
-  if (!userId) {
-    return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
-  }
-  
-  const status = checkExplorationStatus(userId);
-  return res.json({ success: true, status });
-});
-
 // 웹소켓 메시지 처리를 위한 변수
-const pendingDecomposition = new Map();
+const pendingDecomposition = new Map(); // { userId: { fishName, quantity } }
 
 // 서버 시작 전에 기존 데이터 로드
 async function initializeServer() {
@@ -781,7 +800,7 @@ async function initializeServer() {
     // MongoDB 데이터 로드 시도 (실패해도 계속 진행)
     try {
       await loadDatabase();
-      await loadLocalUsers();
+      await loadUsers();
       console.log('MongoDB 데이터 로드 완료');
     } catch (e) {
       console.error('MongoDB 데이터 로드 실패, 서버는 로컬 메모리 데이터로 계속 실행됩니다:', e);
@@ -1124,97 +1143,6 @@ async function initializeServer() {
           const { userId, nickname, room } = info;
           const text = parsed.text.trim();
           const time = getTime();
-
-          // 🧭 탐사 명령어
-          if (text === '탐사' || text === '탐사하기') {
-            // 탐사 상태 확인
-            const status = checkExplorationStatus(userId);
-            
-            if (status.exploring) {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] 🧭 ${status.message}`
-              }));
-            } else if (status.completed) {
-              // 탐사 완료 메시지 및 보상 처리
-              const rewardItems = status.rewards.items.join(', ');
-              const rewardGold = formatPrice(status.rewards.gold);
-              
-              const resultMessage = `[${time}] 🎉 ${nickname}님의 ${status.area} 탐사가 완료되었습니다!\n` +
-                                   `획득한 아이템: ${rewardItems}\n` +
-                                   `획득한 골드: ${rewardGold}원`;
-              
-              saveLog(room, resultMessage, nickname, userId);
-              broadcast(room, { type: 'chat', text: resultMessage });
-            } else {
-              // 탐사 지역 안내
-              const areasList = listExplorationAreas(userId);
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] 🧭 탐사 지역을 선택하세요.\n\n${areasList}\n탐사 시작: "탐사 <번호>" 명령어 입력`
-              }));
-            }
-            return;
-          }
-          
-          // 탐사 지역 선택
-          if (text.startsWith('탐사 ') && text.length > 3) {
-            const areaNumber = parseInt(text.split(' ')[1]);
-            
-            if (isNaN(areaNumber) || areaNumber < 1 || areaNumber > 5) {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] ⚠️ 유효한 탐사 지역 번호를 입력하세요 (1-5).`
-              }));
-              return;
-            }
-            
-            // 탐사 시작
-            const result = startExploration(userId, areaNumber - 1);
-            
-            if (result.success) {
-              saveLog(room, `${nickname}님이 ${result.message}`, nickname, userId);
-              broadcast(room, { 
-                type: 'chat', 
-                text: `[${time}] 🧭 ${nickname}님이 ${result.message}` 
-              });
-            } else {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] ⚠️ ${result.message}`
-              }));
-            }
-            return;
-          }
-          
-          // 🧭 탐사확인 명령어
-          if (text === '탐사확인' || text === '탐사 확인') {
-            const status = checkExplorationStatus(userId);
-            
-            if (status.exploring) {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] 🧭 ${status.message}`
-              }));
-            } else if (status.completed) {
-              // 탐사 완료 메시지 및 보상 처리
-              const rewardItems = status.rewards.items.join(', ');
-              const rewardGold = formatPrice(status.rewards.gold);
-              
-              const resultMessage = `[${time}] 🎉 ${nickname}님의 ${status.area} 탐사가 완료되었습니다!\n` +
-                                   `획득한 아이템: ${rewardItems}\n` +
-                                   `획득한 골드: ${rewardGold}원`;
-              
-              saveLog(room, resultMessage, nickname, userId);
-              broadcast(room, { type: 'chat', text: resultMessage });
-            } else {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] 🧭 현재 진행 중인 탐사가 없습니다.`
-              }));
-            }
-            return;
-          }
 
           // 🎣 낚시하기
           if (text === '낚시하기') {
@@ -1828,59 +1756,6 @@ async function initializeServer() {
           const formatted = `[${time}] ${nickname}: ${text}`;
           saveLog(room, formatted, nickname, userId).catch(e => console.error("일반 채팅 로그 저장 에러:", e));
           broadcast(room, { type: 'chat', text: formatted });
-
-          // 여기에 탐사 기능 관련 코드 추가
-          // 탐사하기 명령어
-          if (text.startsWith('탐사하기')) {
-            const parts = text.split(' ');
-            if (parts.length < 2) {
-              ws.send(JSON.stringify({
-                type: 'chat',
-                text: `[${time}] 명령어 사용법: '탐사하기 재료아이템'`
-              }));
-              return;
-            }
-            
-            const materialName = parts[1];
-            const result = startExplore(userId, materialName, nickname);
-            
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: `[${time}] ${result}`
-            }));
-            
-            // 데이터베이스 저장
-            saveDatabase();
-            return;
-          }
-          
-          // 전투시작 명령어
-          if (text === '전투시작') {
-            const result = executeBattle(userId, nickname);
-            
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: `[${time}] ${result}`
-            }));
-            
-            // 데이터베이스 저장
-            saveDatabase();
-            return;
-          }
-          
-          // 도망가기 명령어
-          if (text === '도망가기') {
-            const result = cancelBattle(userId, nickname);
-            
-            ws.send(JSON.stringify({
-              type: 'chat',
-              text: `[${time}] ${result}`
-            }));
-            
-            // 데이터베이스 저장
-            saveDatabase();
-            return;
-          }
         }
       });
 
