@@ -244,6 +244,332 @@ async function saveLog(room, content) {
   }
 }
 
+// 탐사 기능 관련 데이터 및 함수
+const pendingBattle = new Map(); // 전투 대기 상태
+const exploreCooldown = new Map(); // 탐사 쿨다운 시간
+
+// 물고기 재료와 연관된 물고기 매핑
+const fishMaterialMapping = {
+  "문어다리": "타코문어",
+  "고등어비늘": "풀고등어",
+  "당고": "경단붕어",
+  "버터조각": "버터오징어",
+  "간장종지": "간장새우",
+  "옥수수콘": "물수수",
+  "버터": "정어리파이",
+  "얼음조각": "얼음상어",
+  "오징어먹물": "스퀄스퀴드",
+  "백년송": "백년송거북",
+  "후춧가루": "고스피쉬",
+  "석화": "유령치",
+  "핫소스": "바이트독",
+  "펌킨조각": "호박고래",
+  "꽃술": "바이킹조개",
+  "프레첼": "천사해파리",
+  "베놈": "악마복어",
+  "장어꼬리": "칠성장어",
+  "아인스바인": "닥터블랙",
+  "헤븐즈서펀트": "해룡",
+  "집게다리": "메카핫킹크랩",
+  "이즈니버터": "램프리",
+  "라벤더오일": "마지막잎새",
+  "샤베트": "아이스브리더",
+  "마법의정수": "해신",
+  "휘핑크림": "핑키피쉬",
+  "와플리머신": "콘토퍼스",
+  "베르쥬스": "딥원",
+  "안쵸비": "큐틀루",
+  "핑크멜로우": "꽃술나리",
+  "와일드갈릭": "다무스",
+  "그루누아": "수호자",
+  "시더플랭크": "태양가사리",
+  "세비체": "빅파더펭귄",
+  "타파스": "크레인터틀",
+  "트러플리소토": "CSP-765 조립식생선",
+  "캐비아소스": "데드케이지",
+  "푸아그라에스푸마": "다크암모나이트",
+  "샴페인젤리": "조가비여인",
+  "금박마카롱": "10개통고래",
+  "별조각": "스타피쉬"
+};
+
+// 물고기 체력 매핑
+const fishBaseHPMapping = {
+  "타코문어": 15,
+  "풀고등어": 25,
+  "경단붕어": 35,
+  "버터오징어": 55,
+  "간장새우": 80,
+  "물수수": 115,
+  "정어리파이": 160,
+  "얼음상어": 215,
+  "스퀄스퀴드": 280,
+  "백년송거북": 355,
+  "고스피쉬": 440,
+  "유령치": 525,
+  "바이트독": 640,
+  "호박고래": 755,
+  "바이킹조개": 880,
+  "천사해파리": 1015,
+  "악마복어": 1160,
+  "칠성장어": 1315,
+  "닥터블랙": 1480,
+  "해룡": 1655,
+  "메카핫킹크랩": 1840,
+  "램프리": 2035,
+  "마지막잎새": 2240,
+  "아이스브리더": 2455,
+  "해신": 2680,
+  "핑키피쉬": 2915,
+  "콘토퍼스": 3160,
+  "딥원": 3415,
+  "큐틀루": 3680,
+  "꽃술나리": 3955,
+  "다무스": 4240,
+  "수호자": 4535,
+  "태양가사리": 4840,
+  "빅파더펭귄": 5155,
+  "크레인터틀": 5480,
+  "CSP-765 조립식생선": 5815,
+  "데드케이지": 6160,
+  "다크암모나이트": 6515,
+  "조가비여인": 6880,
+  "10개통고래": 7255
+};
+
+// 물고기 보상 가치 매핑
+const fishRewardMapping = {};
+fishTypes.forEach((fish, index) => {
+  fishRewardMapping[fish.name] = index + 1;
+});
+
+// 기본 공격력 계산 함수 (낚시실력)
+function getFishingAttackPower(userId) {
+  const fishingSkill = fishingSkills.get(userId) || 0;
+  let attackPower = 0;
+  
+  switch (fishingSkill) {
+    case 0: attackPower = Math.floor(Math.random() * 2) + 1; break;
+    case 1: attackPower = Math.floor(Math.random() * 2) + 2; break;
+    case 2: attackPower = Math.floor(Math.random() * 4) + 2; break;
+    case 3: attackPower = Math.floor(Math.random() * 6) + 3; break;
+    case 4: attackPower = Math.floor(Math.random() * 9) + 4; break;
+    case 5: attackPower = Math.floor(Math.random() * 12) + 6; break;
+    case 6: attackPower = Math.floor(Math.random() * 15) + 9; break;
+    case 7: attackPower = Math.floor(Math.random() * 18) + 13; break;
+    case 8: attackPower = Math.floor(Math.random() * 21) + 18; break;
+    case 9: attackPower = Math.floor(Math.random() * 24) + 24; break;
+    case 10: attackPower = Math.floor(Math.random() * 27) + 31; break;
+    case 11: attackPower = Math.floor(Math.random() * 30) + 38; break;
+    case 12: attackPower = Math.floor(Math.random() * 33) + 48; break;
+    case 13: attackPower = Math.floor(Math.random() * 36) + 58; break;
+    case 14: attackPower = Math.floor(Math.random() * 39) + 69; break;
+    case 15: attackPower = Math.floor(Math.random() * 42) + 81; break;
+    default: attackPower = 1 + fishingSkill; break;
+  }
+  
+  return attackPower;
+}
+
+// 강화된 공격력 계산 (장비 보너스 적용)
+function getEnhancedAttackPower(userId) {
+  let baseAttack = getFishingAttackPower(userId);
+  const rod = equippedRod.get(userId) || rodNames[0];
+  const accessory = equippedAccessory.get(userId) || accessoryNames[0];
+  const enhancement = rodEnhancement.get(userId) || 0;
+  
+  // 낚시대 보너스
+  let rodBonus = 0;
+  for (let i = 0; i < rodNames.length; i++) {
+    if (rodNames[i] === rod) {
+      rodBonus = i * 0.1; // 10% 씩 증가
+      break;
+    }
+  }
+  
+  // 악세사리 보너스
+  let accessoryBonus = 0;
+  for (let i = 0; i < accessoryNames.length; i++) {
+    if (accessoryNames[i] === accessory) {
+      accessoryBonus = i * 0.05; // 5% 씩 증가
+      break;
+    }
+  }
+  
+  // 강화 보너스 (강화 수치당 5% 증가)
+  const enhancementBonus = enhancement * 0.05;
+  
+  // 최종 공격력 계산
+  baseAttack = Math.floor(baseAttack * (1 + rodBonus + accessoryBonus + enhancementBonus));
+  return baseAttack;
+}
+
+// 적 기본 체력 계산
+function getBaseEnemyHP(originalFishName) {
+  return fishBaseHPMapping[originalFishName] || 10;
+}
+
+// 탐사 시작 함수
+function startExplore(userId, materialName, nickname) {
+  if (!inventories.has(userId)) {
+    return `인벤토리가 존재하지 않습니다.`;
+  }
+  
+  const userInventory = inventories.get(userId);
+  
+  // 재료 아이템 확인
+  if (!userInventory[materialName] || userInventory[materialName] <= 0) {
+    return `재료 아이템 ${materialName}(이)가 없습니다.`;
+  }
+  
+  // 재료에 해당하는 물고기 찾기
+  const originalFishName = fishMaterialMapping[materialName];
+  if (!originalFishName) {
+    return `재료 ${materialName}으로 생성 가능한 물고기가 없습니다.`;
+  }
+  
+  // 쿨다운 확인
+  const now = Date.now();
+  const cooldownTime = 5 * 60 * 1000; // 5분
+  
+  if (exploreCooldown.has(userId) && (now - exploreCooldown.get(userId)) < cooldownTime) {
+    const remaining = cooldownTime - (now - exploreCooldown.get(userId));
+    const remainingSec = Math.floor(remaining / 1000);
+    const minutes = Math.floor(remainingSec / 60);
+    const seconds = remainingSec % 60;
+    return `탐사 쿨타임 중입니다. 남은 시간: ${minutes}분 ${seconds}초`;
+  }
+  
+  // 재료 소비
+  userInventory[materialName]--;
+  if (userInventory[materialName] <= 0) {
+    delete userInventory[materialName];
+  }
+  inventories.set(userId, userInventory);
+  
+  // 쿨다운 설정
+  exploreCooldown.set(userId, now);
+  
+  // 적 생성 (prefix에 따라 난이도 변화)
+  const rand = Math.random() * 100;
+  let prefix = "";
+  let hpMulti = 1.0, rewardMulti = 1.0;
+  
+  if (rand < 70) { 
+    prefix = "거대한"; 
+  } else if (rand < 90) { 
+    prefix = "변종된"; 
+    hpMulti = 1.5; 
+    rewardMulti = 1.5; 
+  } else if (rand < 97) { 
+    prefix = "심연의"; 
+    hpMulti = 2.8; 
+    rewardMulti = 3.0; 
+  } else { 
+    prefix = "깊은어둠의"; 
+    hpMulti = 4.4; 
+    rewardMulti = 5.0; 
+  }
+  
+  const enemyName = prefix + " " + originalFishName;
+  const baseHP = getBaseEnemyHP(originalFishName);
+  const initialHP = Math.round(baseHP * hpMulti);
+  
+  // 전투 정보 저장
+  pendingBattle.set(userId, {
+    material: materialName,
+    enemyName: enemyName,
+    enemyHP: initialHP,
+    initialHP: initialHP,
+    originalFish: originalFishName,
+    rewardMulti: rewardMulti
+  });
+  
+  return `탐사 결과:\n----\n적: '${enemyName}' (HP: ${initialHP})\n----\n전투를 시작하려면 "전투시작"\n도망가려면 "도망가기"`;
+}
+
+// 전투 실행 함수
+function executeBattle(userId, nickname) {
+  if (!pendingBattle.has(userId)) {
+    return "진행 중인 전투가 없습니다. 먼저 탐사를 진행하세요.";
+  }
+  
+  const battleInfo = pendingBattle.get(userId);
+  const enemyName = battleInfo.enemyName;
+  let currentHP = battleInfo.enemyHP;
+  const initialHP = battleInfo.initialHP;
+  
+  let battleLog = "";
+  battleLog += `전투 시작! VS '${enemyName}' (HP: ${initialHP})\n`;
+  battleLog += "\u200b".repeat(1000) + "\n";
+  battleLog += "----\n";
+  
+  let victory = false;
+  
+  // 최대 10페이즈까지 전투 진행
+  for (let phase = 1; phase <= 10; phase++) {
+    battleLog += `Phase ${phase}:\n`;
+    
+    // 플레이어의 공격
+    const playerAttack = getEnhancedAttackPower(userId);
+    const prevHP = currentHP;
+    currentHP -= playerAttack;
+    if (currentHP < 0) currentHP = 0;
+    
+    const damageDealt = prevHP - currentHP;
+    battleLog += `  ${nickname}의 공격! 데미지: ${damageDealt}\n`;
+    battleLog += `  '${enemyName}'의 HP: ${prevHP} → ${currentHP} (${currentHP}/${initialHP})\n`;
+    
+    if (currentHP <= 0) {
+      victory = true;
+      battleLog += `★ 승리! ${phase}페이즈 만에 적을 제압했습니다.\n`;
+      break;
+    }
+    
+    battleLog += "----\n";
+  }
+  
+  // 전투 결과 처리
+  if (currentHP > 0) {
+    // 패배
+    battleLog += "☠ 패배: 10페이즈 진행 후에도 적의 체력이 남아있습니다.\n";
+  } else {
+    // 승리 - 호박석 보상 지급
+    const baseReward = fishRewardMapping[battleInfo.originalFish] || 1;
+    const rewardCount = Math.floor(baseReward * battleInfo.rewardMulti);
+    battleLog += `보상: '호박석' ${rewardCount}개 지급!\n`;
+    
+    // 호박석 인벤토리에 추가
+    const userInventory = inventories.get(userId) || {};
+    userInventory["호박석"] = (userInventory["호박석"] || 0) + rewardCount;
+    inventories.set(userId, userInventory);
+  }
+  
+  // 전투 상태 제거
+  pendingBattle.delete(userId);
+  
+  return battleLog;
+}
+
+// 전투 취소 함수
+function cancelBattle(userId, nickname) {
+  if (pendingBattle.has(userId)) {
+    pendingBattle.delete(userId);
+    
+    // 쿨다운 감소 (5분에서 1분만 지난 것으로 처리)
+    const now = Date.now();
+    exploreCooldown.set(userId, now - (5 * 60 * 1000 - 1 * 60 * 1000));
+    
+    const remainingTime = 4 * 60; // 4분
+    const minutes = Math.floor(remainingTime / 60);
+    const seconds = remainingTime % 60;
+    
+    return `전투에서 도망쳤습니다. ${minutes}분 ${seconds}초의 탐사 쿨타임이 적용되었습니다.`;
+  }
+  
+  return "진행 중인 전투가 없습니다.";
+}
+
 // 데이터베이스에서 기존 데이터를 불러오기
 async function loadDatabase() {
   try {
@@ -374,5 +700,16 @@ module.exports = {
   loadDatabase,
   saveDatabase,
   loadUsers,
-  saveUsers
+  saveUsers,
+  
+  // 탐사 기능 내보내기
+  getFishingAttackPower,
+  getEnhancedAttackPower,
+  startExplore,
+  executeBattle,
+  cancelBattle,
+  pendingBattle,
+  exploreCooldown,
+  fishMaterialMapping,
+  fishRewardMapping
 }; 
