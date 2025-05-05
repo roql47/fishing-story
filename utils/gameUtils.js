@@ -146,7 +146,7 @@ function showInventory(userId, nickname) {
   result += `💰 보유 골드: ${formatPrice(gold)}원\n`;
   result += `🎣 장착된 낚시대: ${rodDisplay}\n`;
   result += `💍 장착된 악세사리: ${accessory}\n`;
-  result += `🎯 낚시 스킬 레벨: ${fishingSkills.get(userId) || 0}\n\n`;
+  result += `🎯 낚시 스킬 레벨: ${fishingSkills.get(userId) || 1}\n\n`;
   
   if (fishItems.length > 0) {
     result += "🐟 물고기:\n";
@@ -176,7 +176,7 @@ function showInventory(userId, nickname) {
 
 // 랜덤 물고기 획득 함수
 function getRandomFish(userId) {
-  const skillLevel = fishingSkills.get(userId) || 0;
+  const skillLevel = fishingSkills.get(userId) || 1;
   let fishStartIndex = 0, fishEndIndex = 10;
   
   if (skillLevel === 2) { fishStartIndex = 1; }
