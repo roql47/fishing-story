@@ -348,33 +348,40 @@
     }
     
     .fish-info-btn {
-      background: #4a90e2;
+      background: linear-gradient(to bottom, #3498db, #2980b9);
       color: white;
       border: none;
-      border-radius: 5px;
-      padding: 5px 10px;
+      border-radius: 20px;
+      padding: 6px 12px;
       cursor: pointer;
-      font-size: 0.8em;
-      transition: background-color 0.3s;
+      font-size: 0.85em;
+      transition: all 0.3s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     
     .fish-info-btn:hover {
-      background: #3a80d2;
+      background: linear-gradient(to bottom, #2980b9, #2471a3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
     
     .fish-info-content {
       display: none;
       position: absolute;
       background-color: #fff;
-      min-width: 320px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-      z-index: 1;
-      border-radius: 8px;
-      padding: 15px;
+      min-width: 340px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      z-index: 1000;
+      border-radius: 12px;
+      padding: 20px;
       right: 0;
-      max-height: 450px;
+      max-height: 500px;
       overflow-y: auto;
       transition: all 0.3s ease;
+      border: 1px solid #e0e0e0;
     }
     
     .fish-info-content.show {
@@ -388,25 +395,37 @@
     }
     
     /* 세련된 물고기 정보 스타일 */
+    .fish-info-title {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #3498db;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #f0f0f0;
+      text-align: center;
+    }
+    
     .fish-card {
       display: flex;
       align-items: center;
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 8px;
-      background: #f8f9fa;
-      transition: transform 0.2s;
-      border-left: 4px solid #4a90e2;
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fafafa;
+      transition: all 0.2s;
+      border-left: 4px solid #3498db;
     }
     
     .fish-card:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      background: #f5f5f5;
     }
     
     .fish-icon {
-      margin-right: 10px;
-      font-size: 1.5em;
+      margin-right: 12px;
+      font-size: 1.6em;
+      color: #555;
     }
     
     .fish-details {
@@ -417,21 +436,41 @@
       font-weight: bold;
       color: #333;
       margin: 0;
+      font-size: 1em;
     }
     
     .fish-stats {
       display: flex;
       font-size: 0.9em;
       color: #666;
-      margin-top: 3px;
+      margin-top: 5px;
+      flex-wrap: wrap;
     }
     
     .fish-probability {
       margin-right: 15px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .probability-bar {
+      display: inline-block;
+      width: 40px;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      margin-left: 5px;
+      overflow: hidden;
+    }
+    
+    .probability-fill {
+      height: 100%;
+      background: linear-gradient(to right, #2ecc71, #27ae60);
+      border-radius: 3px;
     }
     
     .fish-price {
-      color: #4caf50;
+      color: #e74c3c;
       font-weight: bold;
     }
     
@@ -440,14 +479,19 @@
       border-left: 4px solid #ffc107;
     }
     
+    .rare-fish .fish-icon {
+      color: #ff9800;
+    }
+    
     .skill-info {
-      background: #e3f2fd;
-      padding: 12px;
-      border-radius: 8px;
-      margin-top: 15px;
+      background: linear-gradient(to right, #e3f2fd, #bbdefb);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     
     .skill-level {
@@ -459,11 +503,12 @@
     .skill-tip {
       font-size: 0.9em;
       color: #555;
+      font-style: italic;
     }
     
     .fish-category {
-      color: #757575;
-      font-size: 0.9em;
+      color: #3498db;
+      font-size: 0.95em;
       font-weight: bold;
       margin: 15px 0 10px 0;
       padding-bottom: 5px;
@@ -476,9 +521,8 @@
   <div id="authContainer" class="auth-container">
     <h1>🎣 여우이야기 <span style="font-size: 0.6em; color: #666;">V1.0</span>
       <div class="fish-info-dropdown">
-        <button class="fish-info-btn">낚시 정보</button>
+        <button class="fish-info-btn">🐟 낚시 정보</button>
         <div class="fish-info-content" id="fishInfoContent">
-          <h4>내가 낚을 수 있는 물고기</h4>
           <div id="currentFishInfo">로딩 중...</div>
         </div>
       </div>
@@ -518,9 +562,8 @@
     <div class="chat-container">
       <h1>🎣 여우이야기 <span style="font-size: 0.6em; color: #666;">V1.0</span>
         <div class="fish-info-dropdown">
-          <button class="fish-info-btn">낚시 정보</button>
+          <button class="fish-info-btn">🐟 낚시 정보</button>
           <div class="fish-info-content" id="fishInfoContent">
-            <h4>내가 낚을 수 있는 물고기</h4>
             <div id="currentFishInfo">로딩 중...</div>
           </div>
         </div>
@@ -808,6 +851,9 @@
           
           // 사용자 정보 표시
           userInfoText.textContent = `${currentUser.username}으로 로그인됨 (UUID: ${currentUser.uuid.substring(0, 8)}...)`;
+          
+          // 낚시 데이터 로드 (새로 추가)
+          loadFishData();
           
           // 화면 전환
           setTimeout(() => {
@@ -1321,7 +1367,7 @@
       if (!fishInfoContent) return;
       
       // 낚시 스킬 레벨 가져오기
-      const skillLevel = parseInt(localStorage.getItem('fishingSkillLevel') || '0');
+      const skillLevel = parseInt(localStorage.getItem('fishingSkillLevel') || '1');
       
       // 물고기 데이터가 없는 경우 메시지 표시
       if (!fishTypes || fishTypes.length === 0) {
@@ -1348,6 +1394,7 @@
       `;
       
       // 일반 물고기 섹션
+      htmlContent += `<div class="fish-info-title">🎣 낚시 확률 정보</div>`;
       htmlContent += `<div class="fish-category">🐟 낚을 수 있는 물고기</div>`;
       
       // 일반 물고기 정보 추가
@@ -1355,13 +1402,21 @@
         const fish = effectiveFishTypes[i];
         const probability = i < catchProbabilities.length ? catchProbabilities[i] : 0;
         
+        // 확률에 따른 바 너비 계산
+        const fillWidth = Math.min(100, (probability / 40) * 100);
+        
         htmlContent += `
           <div class="fish-card">
             <div class="fish-icon">🐟</div>
             <div class="fish-details">
               <div class="fish-name">${fish.name}</div>
               <div class="fish-stats">
-                <div class="fish-probability">확률: ${probability}%</div>
+                <div class="fish-probability">
+                  확률: ${probability}%
+                  <div class="probability-bar">
+                    <div class="probability-fill" style="width: ${fillWidth}%"></div>
+                  </div>
+                </div>
                 <div class="fish-price">${formatPrice(fish.price)}원</div>
               </div>
             </div>
@@ -1379,7 +1434,12 @@
           <div class="fish-details">
             <div class="fish-name">${rareFish.name}</div>
             <div class="fish-stats">
-              <div class="fish-probability">확률: 0.5%</div>
+              <div class="fish-probability">
+                확률: 0.5%
+                <div class="probability-bar">
+                  <div class="probability-fill" style="width: 1.25%"></div>
+                </div>
+              </div>
               <div class="fish-price">${formatPrice(rareFish.price)}원</div>
             </div>
           </div>
@@ -1400,6 +1460,12 @@
             if (data.catchProbabilities) {
               catchProbabilities = data.catchProbabilities;
             }
+            
+            // 낚시 스킬 레벨이 설정되지 않았다면 기본값 설정 (새로운 코드)
+            if (!localStorage.getItem('fishingSkillLevel')) {
+              localStorage.setItem('fishingSkillLevel', '1');
+            }
+            
             updateFishInfoDisplay();
           }
         })
@@ -1418,6 +1484,12 @@
             { name: '스퀄스퀴드', price: 60000 },
             { name: '백년송거북', price: 100000 }
           ];
+          
+          // 낚시 스킬 레벨이 설정되지 않았다면 기본값 설정 (새로운 코드)
+          if (!localStorage.getItem('fishingSkillLevel')) {
+            localStorage.setItem('fishingSkillLevel', '1');
+          }
+          
           updateFishInfoDisplay();
         });
     }
