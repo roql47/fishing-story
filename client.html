@@ -25,6 +25,7 @@
       border-radius: 5px;
       padding: 10px;
       height: fit-content;
+      margin-bottom: 15px;
     }
     .user-list-title {
       font-weight: bold;
@@ -514,6 +515,195 @@
       padding-bottom: 5px;
       border-bottom: 1px solid #eee;
     }
+    
+    /* 사이드 컨테이너 스타일 */
+    .side-container {
+      width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    /* 낚시 정보 위젯 스타일 */
+    .fishing-info-widget {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .fishing-info-header {
+      background: linear-gradient(135deg, #3498db, #2c3e50);
+      color: white;
+      padding: 12px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .fishing-info-title {
+      font-weight: bold;
+      font-size: 1em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .fishing-info-toggle {
+      transition: transform 0.3s ease;
+    }
+    
+    .fishing-info-widget.collapsed .fishing-info-toggle {
+      transform: rotate(-90deg);
+    }
+    
+    .fishing-info-content {
+      padding: 15px;
+      max-height: 500px;
+      overflow-y: auto;
+      transition: max-height 0.3s ease;
+    }
+    
+    .fishing-info-widget.collapsed .fishing-info-content {
+      max-height: 0;
+      padding: 0 15px;
+      overflow: hidden;
+    }
+    
+    /* 물고기 카드 재정의 */
+    .fish-card {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #f8f9fa;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      transition: all 0.2s;
+      border-left: 3px solid #3498db;
+    }
+    
+    .fish-card:last-child {
+      margin-bottom: 0;
+    }
+    
+    .fish-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .fish-icon {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      font-size: 1.3em;
+    }
+    
+    .fish-details {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .fish-name {
+      font-weight: 600;
+      color: #333;
+      margin: 0;
+      font-size: 0.9em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .fish-stats {
+      display: flex;
+      font-size: 0.75em;
+      color: #666;
+      margin-top: 3px;
+      flex-wrap: wrap;
+    }
+    
+    .fish-probability {
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .probability-bar {
+      display: inline-block;
+      width: 36px;
+      height: 4px;
+      background: #eee;
+      border-radius: 2px;
+      margin-left: 4px;
+      overflow: hidden;
+    }
+    
+    .probability-fill {
+      height: 100%;
+      background: linear-gradient(to right, #2ecc71, #27ae60);
+      border-radius: 2px;
+    }
+    
+    .fish-price {
+      color: #e74c3c;
+      font-weight: 600;
+    }
+    
+    .skill-info {
+      background: linear-gradient(to right, #e3f2fd, #bbdefb);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .skill-level {
+      font-weight: 600;
+      font-size: 0.9em;
+      color: #1976d2;
+    }
+    
+    .skill-tip {
+      font-size: 0.75em;
+      color: #555;
+      font-style: italic;
+    }
+    
+    .fish-category {
+      color: #3498db;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin: 12px 0 8px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .fish-info-title {
+      font-size: 1em;
+      font-weight: 600;
+      color: #3498db;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .rare-fish {
+      border-left-color: #ff9800;
+      background: #fff8e1;
+    }
+    
+    .rare-fish .fish-icon {
+      color: #ff9800;
+    }
   </style>
 </head>
 <body>
@@ -560,14 +750,7 @@
   <!-- 채팅 컨테이너 -->
   <div id="chatContainer" style="width: 100%; display: flex;">
     <div class="chat-container">
-      <h1>🎣 여우이야기 <span style="font-size: 0.6em; color: #666;">V1.0</span>
-        <div class="fish-info-dropdown">
-          <button class="fish-info-btn">🐟 낚시 정보</button>
-          <div class="fish-info-content" id="fishInfoContent">
-            <div id="currentFishInfo">로딩 중...</div>
-          </div>
-        </div>
-      </h1>
+      <h1>🎣 여우이야기 <span style="font-size: 0.6em; color: #666;">V1.0</span></h1>
       
       <div id="userInfo" class="user-info">
         <span id="userInfoText" class="user-info-text">게스트로 로그인됨</span>
@@ -610,11 +793,24 @@
       </div>
     </div>
 
-    <div class="user-list-container">
-      <div class="user-list-title">👥 참여자 목록 (<span id="userCount">0</span>명)</div>
-      <ul id="userList" class="user-list">
-        <!-- 참여자 목록이 여기에 동적으로 추가됩니다 -->
-      </ul>
+    <div class="side-container">
+      <div class="user-list-container">
+        <div class="user-list-title">👥 참여자 목록 (<span id="userCount">0</span>명)</div>
+        <ul id="userList" class="user-list">
+          <!-- 참여자 목록이 여기에 동적으로 추가됩니다 -->
+        </ul>
+      </div>
+      
+      <!-- 낚시 정보 위젯 -->
+      <div class="fishing-info-widget">
+        <div class="fishing-info-header">
+          <span class="fishing-info-title">🐟 낚시 정보</span>
+          <span class="fishing-info-toggle">▼</span>
+        </div>
+        <div class="fishing-info-content">
+          <div id="currentFishInfo">로딩 중...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1364,10 +1560,14 @@
     // 물고기 확률 정보 업데이트 함수
     function updateFishInfoDisplay() {
       const fishInfoContent = document.getElementById('currentFishInfo');
-      if (!fishInfoContent) return;
+      if (!fishInfoContent) {
+        console.error("currentFishInfo 요소를 찾을 수 없습니다.");
+        return;
+      }
       
       // 낚시 스킬 레벨 가져오기
       const skillLevel = parseInt(localStorage.getItem('fishingSkillLevel') || '1');
+      console.log("현재 낚시 스킬 레벨:", skillLevel);
       
       // 물고기 데이터가 없는 경우 메시지 표시
       if (!fishTypes || fishTypes.length === 0) {
@@ -1377,6 +1577,7 @@
       
       // 레벨에 따른 물고기 범위 계산
       const range = getFishRangeBySkill(skillLevel);
+      console.log("물고기 범위:", range);
       const effectiveFishTypes = fishTypes.slice(range.start, range.end);
       
       // 희귀 물고기 (스타피쉬) 추가
@@ -1447,14 +1648,20 @@
       `;
       
       fishInfoContent.innerHTML = htmlContent;
+      console.log("물고기 정보 업데이트 완료!");
     }
     
     // 물고기 데이터 로드 함수
     function loadFishData() {
+      console.log("물고기 데이터 로드 시도...");
       // 서버에서 물고기 데이터 가져오기
       fetch('/api/fish-data')
-        .then(response => response.json())
+        .then(response => {
+          console.log("서버 응답:", response.status);
+          return response.json();
+        })
         .then(data => {
+          console.log("물고기 데이터 수신:", data);
           if (data.success) {
             fishTypes = data.fishTypes;
             if (data.catchProbabilities) {
@@ -1467,6 +1674,8 @@
             }
             
             updateFishInfoDisplay();
+          } else {
+            console.error("물고기 데이터 로드 실패:", data.error);
           }
         })
         .catch(error => {
@@ -1498,35 +1707,17 @@
     document.addEventListener('DOMContentLoaded', function() {
       loadFishData();
       
-      // 낚시 정보 버튼 클릭 이벤트 처리
-      const fishInfoButtons = document.querySelectorAll('.fish-info-btn');
-      const fishInfoContents = document.querySelectorAll('.fish-info-content');
+      // 낚시 정보 헤더 클릭 이벤트 처리 (토글)
+      const fishingInfoHeader = document.querySelector('.fishing-info-header');
+      const fishingInfoWidget = document.querySelector('.fishing-info-widget');
       
-      fishInfoButtons.forEach((button, index) => {
-        button.addEventListener('click', function(e) {
-          e.stopPropagation(); // 이벤트 버블링 방지
-          fishInfoContents[index].classList.toggle('show');
-          
-          // 다른 모든 드롭다운 닫기
-          fishInfoContents.forEach((content, i) => {
-            if (i !== index) content.classList.remove('show');
-          });
+      if (fishingInfoHeader) {
+        fishingInfoHeader.addEventListener('click', function() {
+          fishingInfoWidget.classList.toggle('collapsed');
         });
-      });
+      }
       
-      // 다른 곳 클릭 시 모든 드롭다운 닫기
-      document.addEventListener('click', function() {
-        fishInfoContents.forEach(content => {
-          content.classList.remove('show');
-        });
-      });
-      
-      // 드롭다운 내부 클릭 시 이벤트 버블링 방지
-      fishInfoContents.forEach(content => {
-        content.addEventListener('click', function(e) {
-          e.stopPropagation();
-        });
-      });
+      // 초기 상태는 펼쳐진 상태로 (기본값)
       
       // 소켓 메시지 처리에 낚시 스킬 레벨 업데이트 로직 추가
       const originalOnmessage = socket ? socket.onmessage : null;
