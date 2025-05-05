@@ -46,6 +46,12 @@ const goldSchema = new mongoose.Schema({
   amount: { type: Number, default: 0 }
 });
 
+// 낚시 스킬 레벨 스키마 추가
+const fishingSkillSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true },
+  level: { type: Number, default: 0 }
+});
+
 // 채팅 로그를 위한 스키마 추가
 const chatLogSchema = new mongoose.Schema({
   room: { type: String, required: true },
@@ -58,6 +64,7 @@ const chatLogSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 const Inventory = mongoose.model('Inventory', inventorySchema);
 const Gold = mongoose.model('Gold', goldSchema);
+const FishingSkill = mongoose.model('FishingSkill', fishingSkillSchema);
 const ChatLog = mongoose.model('ChatLog', chatLogSchema);
 
 // 초기 연결 시도
@@ -72,6 +79,7 @@ module.exports = {
   User,
   Inventory,
   Gold,
+  FishingSkill,
   ChatLog,
   isConnected,
   connectToMongoDB
