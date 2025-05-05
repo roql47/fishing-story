@@ -791,6 +791,20 @@ app.post('/api/admin/accessory', async (req, res) => {
   }
 });
 
+// 물고기 데이터 API - 클라이언트에서 물고기 정보를 가져갈 수 있도록 함
+app.get('/api/fish-data', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      fishTypes: fishTypes,
+      catchProbabilities: catchProbabilities
+    });
+  } catch (e) {
+    console.error('물고기 데이터 API 에러:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // 웹소켓 메시지 처리를 위한 변수
 const pendingDecomposition = new Map(); // { userId: { fishName, quantity } }
 
