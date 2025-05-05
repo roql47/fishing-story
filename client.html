@@ -882,6 +882,7 @@
 
     // 숫자를 1,000 단위로 ','를 추가하는 함수
     function formatPrice(price) {
+      price = price != null ? price : 0;
       return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
