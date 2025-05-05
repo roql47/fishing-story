@@ -119,8 +119,8 @@ function generateUUID() {
   return crypto.randomUUID();
 }
 
-// 유저 데이터베이스에서 기존 유저 데이터를 불러오기
-async function loadUsers() {
+// 로컬 유저 데이터베이스 로드 함수
+async function loadLocalUsers() {
   try {
     const usersData = await User.find({});
     for (const user of usersData) {
@@ -619,6 +619,20 @@ app.get('/api/chatrooms', async (req, res) => {
   }
 });
 
+// 물고기 데이터 API - 클라이언트에서 물고기 정보를 가져갈 수 있도록 함
+app.get('/api/fish-data', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      fishTypes: fishTypes,
+      catchProbabilities: catchProbabilities
+    });
+  } catch (e) {
+    console.error('물고기 데이터 API 에러:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // 관리자 골드 수정 API
 app.post('/api/admin/gold', async (req, res) => {
   const { username, amount, adminKey } = req.body;
@@ -880,7 +894,7 @@ async function initializeServer() {
     // MongoDB 데이터 로드 시도 (실패해도 계속 진행)
     try {
       await loadDatabase();
-      await loadUsers();
+      await loadLocalUsers();
       console.log('MongoDB 데이터 로드 완료');
     } catch (e) {
       console.error('MongoDB 데이터 로드 실패, 서버는 로컬 메모리 데이터로 계속 실행됩니다:', e);
