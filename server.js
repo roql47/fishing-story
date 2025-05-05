@@ -105,11 +105,11 @@ const fishTypes = [
 const catchProbabilities = [38.5, 25, 15, 8, 5, 3, 2, 1, 0.7, 0.3, 1];
 
 // 포맷 가격 유틸리티 함수
-function formatPrice(price) {
-  // price가 undefined, null일 경우 0을 기본값으로 사용
-  price = price != null ? price : 0;
-  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
+// function formatPrice(price) {
+//   // price가 undefined, null일 경우 0을 기본값으로 사용
+//   price = price != null ? price : 0;
+//   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+// }
 
 const DB_FILE = path.join(__dirname, 'db.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
