@@ -220,56 +220,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 데이터베이스에서 기존 데이터를 불러오기
-async function loadDatabase() {
-  try {
-    const inventoriesData = await Inventory.find({});
-    const goldData = await Gold.find({});
-    
-    for (const inv of inventoriesData) {
-      inventories.set(inv.userId, inv.items);
-    }
-    
-    for (const gold of goldData) {
-      userGold.set(gold.userId, gold.amount);
-    }
-    
-    // 탐사 데이터 로드 (파일에서)
-    try {
-      const explorationStatusPath = path.join(__dirname, 'data', 'explorationStatus.json');
-      const explorationTimesPath = path.join(__dirname, 'data', 'lastExplorationTime.json');
-      
-      // 탐사 상태 로드
-      if (fs.existsSync(explorationStatusPath)) {
-        const explorationData = JSON.parse(fs.readFileSync(explorationStatusPath, 'utf8'));
-        for (const entry of explorationData) {
-          if (entry.userId && entry.data) {
-            explorationStatus.set(entry.userId, entry.data);
-          }
-        }
-      }
-      
-      // 마지막 탐사 시간 로드
-      if (fs.existsSync(explorationTimesPath)) {
-        const explorationTimes = JSON.parse(fs.readFileSync(explorationTimesPath, 'utf8'));
-        for (const entry of explorationTimes) {
-          if (entry.userId && entry.time) {
-            lastExplorationTime.set(entry.userId, entry.time);
-          }
-        }
-      }
-      
-      console.log('탐사 데이터 로드 완료');
-    } catch (e) {
-      console.error('탐사 데이터 로드 에러:', e);
-    }
-    
-    console.log('데이터베이스 로드 완료');
-  } catch (e) {
-    console.error("데이터베이스 로드 에러:", e);
-  }
-}
-
 // 현재 메모리 데이터를 MongoDB에 저장하기
 async function saveDatabase() {
   if (!isConnected()) {
