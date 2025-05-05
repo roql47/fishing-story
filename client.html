@@ -883,8 +883,12 @@
         authContainer.style.display = 'none';
         chatContainer.style.display = 'flex';
         
-        // 낚시 데이터 로드 (추가)
+        // 낚시 데이터 로드
         loadFishData();
+        console.log("사용자 정보 로드 완료 - 낚시 데이터 로드 호출됨");
+        
+        // 자동 채팅 연결
+        connectToChat();
       }
     }
 
@@ -921,6 +925,12 @@
       authContainer.style.display = 'none';
       chatContainer.style.display = 'flex';
       userInfoText.textContent = "게스트로 로그인됨";
+      
+      // 낚시 데이터 로드
+      loadFishData();
+      
+      // 자동 채팅 연결
+      connectToChat();
     });
 
     // 로그아웃 기능
@@ -1054,6 +1064,9 @@
             chatContainer.style.display = 'flex';
             loginMessage.textContent = '';
             loginMessage.className = 'auth-message';
+            
+            // 자동 채팅 연결
+            connectToChat();
           }, 1500);
         } else {
           loginMessage.textContent = data.message;
@@ -1340,19 +1353,27 @@
         socket = new WebSocket(`${protocol}//${host}`);
         
         socket.addEventListener('open', function(event) {
-          console.log('소켓 연결 성공');
-          // UUID가 있으면 함께 전송
-          socket.send(JSON.stringify({ 
-            type: 'join', 
-            nickname, 
-            room,
-            uuid: currentUser.uuid 
+          // 로그인 사용자 정보 전송
+          socket.send(JSON.stringify({
+            type: 'join',
+            nickname: currentUser.username,
+            room: room,
+            uuid: currentUser.uuid  // UUID 전송
           }));
           
           statusText.innerHTML = '서버 연결 상태: <span style="color:green;">연결됨</span>';
           form.style.display = 'flex';
           input.focus();
           isConnected = true;
+          
+          // 연결 직후 본인의 사용자 정보 요청 (낚시 스킬 레벨 업데이트 위해)
+          setTimeout(() => {
+            socket.send(JSON.stringify({
+              type: 'requestUserInfo',
+              targetUserId: currentUser.uuid
+            }));
+            console.log("본인 정보 요청 전송됨 (낚시 스킬 레벨 업데이트 용)");
+          }, 1000);
         });
 
         socket.addEventListener('error', function(event) {
@@ -1374,9 +1395,20 @@
           } else if (data.type === 'leave') {
             addMessage(data, 'leave');
           } else if (data.type === 'userInfo') {
+            // 사용자 본인의 정보인 경우 낚시 스킬 레벨을 로컬 스토리지에 저장
+            const currentUserObj = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const clickedUserNickname = currentUserData.find(user => user.userId === data.userId)?.nickname || '알 수 없음';
+            
+            if (currentUserObj.username === clickedUserNickname && data.skillLevel !== undefined) {
+              localStorage.setItem('fishingSkillLevel', data.skillLevel.toString());
+              console.log(`서버에서 받은 낚시 스킬 레벨(${data.skillLevel})을 저장했습니다.`);
+              // 낚시 정보 업데이트
+              updateFishInfoDisplay();
+            }
+            
             // 인벤토리 정보 모달로 표시
             showInventoryModal(
-              currentUserData.find(user => user.userId === data.userId)?.nickname || '알 수 없음',
+              clickedUserNickname,
               data.inventory || {},
               data.gold || 0,
               data.skillLevel || 0
@@ -1448,6 +1480,17 @@
       skillItem.className = 'inventory-item';
       skillItem.innerHTML = `<span>🎣 낚시 스킬 레벨</span><span>${skillLevel}</span>`;
       inventoryContent.appendChild(skillItem);
+      
+      // 사용자가 로그인한 사용자 본인인 경우, 낚시 스킬 레벨 업데이트 및 낚시 정보 갱신
+      // 현재 사용자와 모달에 표시된 사용자의 닉네임이 같은 경우 낚시 스킬 레벨 업데이트
+      const currentUserObj = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (currentUserObj.username === nickname) {
+        // 로컬 스토리지에 낚시 스킬 레벨 저장
+        localStorage.setItem('fishingSkillLevel', skillLevel.toString());
+        // 낚시 정보 업데이트
+        updateFishInfoDisplay();
+        console.log(`낚시 스킬 레벨이 ${skillLevel}로 업데이트되었습니다.`);
+      }
       
       // 물고기 및 아이템 표시
       let hasItems = false;
@@ -1740,6 +1783,19 @@
         };
       }
     });
+
+    // 채팅 연결 함수
+    function connectToChat() {
+      // 기본 방 이름
+      const roomName = '기본방';
+      
+      if (!currentUser) {
+        console.error('사용자 정보가 없습니다. 로그인 필요');
+        return;
+      }
+      
+      connect(currentUser.username, roomName);
+    }
   </script>
 </body>
 </html>
