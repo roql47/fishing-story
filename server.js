@@ -1274,33 +1274,33 @@ async function initializeServer() {
             
             if (skillLevel === 2) { fishStartIndex = 1; fishEndIndex = 11; }
             else if (skillLevel === 3) { fishStartIndex = 2; fishEndIndex = 12; }
-            else if (skillLevel === 4) { fishStartIndex = 3; fishEndIndex = 13; }
-            else if (skillLevel === 5) { fishStartIndex = 4; fishEndIndex = 14; }
-            else if (skillLevel === 6) { fishStartIndex = 5; fishEndIndex = 15; }
-            else if (skillLevel === 7) { fishStartIndex = 6; fishEndIndex = 16; }
-            else if (skillLevel === 8) { fishStartIndex = 7; fishEndIndex = 17; }
-            else if (skillLevel === 9) { fishStartIndex = 8; fishEndIndex = 18; }
-            else if (skillLevel === 10) { fishStartIndex = 9; fishEndIndex = 19; }
-            else if (skillLevel === 11) { fishStartIndex = 10; fishEndIndex = 20; }
-            else if (skillLevel === 12) { fishStartIndex = 11; fishEndIndex = 21; }
-            else if (skillLevel === 13) { fishStartIndex = 12; fishEndIndex = 22; }
-            else if (skillLevel === 14) { fishStartIndex = 13; fishEndIndex = 23; }
-            else if (skillLevel === 15) { fishStartIndex = 14; fishEndIndex = 24; }
-            else if (skillLevel === 16) { fishStartIndex = 15; fishEndIndex = 25; }
-            else if (skillLevel === 17) { fishStartIndex = 16; fishEndIndex = 26; }
-            else if (skillLevel === 18) { fishStartIndex = 17; fishEndIndex = 27; }
-            else if (skillLevel === 19) { fishStartIndex = 18; fishEndIndex = 28; }
-            else if (skillLevel === 20) { fishStartIndex = 19; fishEndIndex = 29; }
-            else if (skillLevel === 21) { fishStartIndex = 20; fishEndIndex = 30; }
-            else if (skillLevel === 22) { fishStartIndex = 21; fishEndIndex = 31; }
-            else if (skillLevel === 23) { fishStartIndex = 22; fishEndIndex = 32; }
-            else if (skillLevel === 24) { fishStartIndex = 23; fishEndIndex = 33; }
-            else if (skillLevel === 25) { fishStartIndex = 24; fishEndIndex = 34; }
-            else if (skillLevel === 26) { fishStartIndex = 25; fishEndIndex = 35; }
-            else if (skillLevel === 27) { fishStartIndex = 26; fishEndIndex = 36; }
-            else if (skillLevel === 28) { fishStartIndex = 27; fishEndIndex = 37; }
-            else if (skillLevel === 29) { fishStartIndex = 28; fishEndIndex = 38; }
-            else if (skillLevel === 30) { fishStartIndex = 29; fishEndIndex = 39; }
+            else if (skillLevel === 4) { fishStartIndex = 3; fishEndIndex = 12; }
+            else if (skillLevel === 5) { fishStartIndex = 4; fishEndIndex = 13; }
+            else if (skillLevel === 6) { fishStartIndex = 5; fishEndIndex = 14; }
+            else if (skillLevel === 7) { fishStartIndex = 6; fishEndIndex = 15; }
+            else if (skillLevel === 8) { fishStartIndex = 7; fishEndIndex = 16; }
+            else if (skillLevel === 9) { fishStartIndex = 8; fishEndIndex = 17; }
+            else if (skillLevel === 10) { fishStartIndex = 9; fishEndIndex = 18; }
+            else if (skillLevel === 11) { fishStartIndex = 10; fishEndIndex = 19; }
+            else if (skillLevel === 12) { fishStartIndex = 11; fishEndIndex = 20; }
+            else if (skillLevel === 13) { fishStartIndex = 12; fishEndIndex = 21; }
+            else if (skillLevel === 14) { fishStartIndex = 13; fishEndIndex = 22; }
+            else if (skillLevel === 15) { fishStartIndex = 14; fishEndIndex = 23; }
+            else if (skillLevel === 16) { fishStartIndex = 15; fishEndIndex = 24; }
+            else if (skillLevel === 17) { fishStartIndex = 16; fishEndIndex = 25; }
+            else if (skillLevel === 18) { fishStartIndex = 17; fishEndIndex = 26; }
+            else if (skillLevel === 19) { fishStartIndex = 18; fishEndIndex = 27; }
+            else if (skillLevel === 20) { fishStartIndex = 19; fishEndIndex = 28; }
+            else if (skillLevel === 21) { fishStartIndex = 20; fishEndIndex = 29; }
+            else if (skillLevel === 22) { fishStartIndex = 21; fishEndIndex = 30; }
+            else if (skillLevel === 23) { fishStartIndex = 22; fishEndIndex = 31; }
+            else if (skillLevel === 24) { fishStartIndex = 23; fishEndIndex = 32; }
+            else if (skillLevel === 25) { fishStartIndex = 24; fishEndIndex = 33; }
+            else if (skillLevel === 26) { fishStartIndex = 25; fishEndIndex = 34; }
+            else if (skillLevel === 27) { fishStartIndex = 26; fishEndIndex = 35; }
+            else if (skillLevel === 28) { fishStartIndex = 27; fishEndIndex = 36; }
+            else if (skillLevel === 29) { fishStartIndex = 28; fishEndIndex = 37; }
+            else if (skillLevel === 30) { fishStartIndex = 29; fishEndIndex = 38; }
             else if (skillLevel >= 31) { fishStartIndex = 30; fishEndIndex = 39; }
             
             const effectiveFishTypes = fishTypes.slice(fishStartIndex, fishEndIndex);
