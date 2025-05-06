@@ -887,11 +887,17 @@ async function initializeServer() {
               const goldDoc = await Gold.findOne({ userId: targetUserId });
               const gold = goldDoc ? goldDoc.amount : 0;
               
+              // 낚시 스킬 레벨 가져오기
+              const fishingSkillDoc = await FishingSkill.findOne({ userId: targetUserId });
+              const skillLevel = fishingSkillDoc ? fishingSkillDoc.level : 1;
+              
               // 메모리 데이터 업데이트
               inventories.set(targetUserId, items);
               userGold.set(targetUserId, gold);
+              fishingSkills.set(targetUserId, skillLevel);
               
               console.log('사용자 인벤토리:', items);
+              console.log('사용자 낚시 스킬 레벨:', skillLevel);
               
               // 응답 보내기
               const info = {
@@ -899,7 +905,7 @@ async function initializeServer() {
                 userId: targetUserId,
                 inventory: items,
                 gold: gold,
-                skillLevel: fishingSkills.get(targetUserId) || 1
+                skillLevel: skillLevel
               };
               ws.send(JSON.stringify(info));
               
@@ -983,6 +989,24 @@ async function initializeServer() {
               userGold.set(userId, gold);
               console.log('로드된 골드:', gold);
               
+              // 낚시 스킬 레벨 확인 및 생성
+              const fishingSkillDoc = await FishingSkill.findOne({ userId });
+              let skillLevel = fishingSkillDoc ? fishingSkillDoc.level : 1;
+              
+              if (!fishingSkillDoc) {
+                // 새 낚시 스킬 레벨 데이터 생성 (기본값 1)
+                await FishingSkill.updateOne(
+                  { userId },
+                  { userId, level: 1 },
+                  { upsert: true }
+                );
+                skillLevel = 1;
+              }
+              
+              // 메모리에 낚시 스킬 레벨 설정
+              fishingSkills.set(userId, skillLevel);
+              console.log('로드된 낚시 스킬 레벨:', skillLevel);
+              
               // 모든 참여자 목록 생성
               const allUsers = [];
               for (const [, info] of clients) {
@@ -1014,6 +1038,18 @@ async function initializeServer() {
                 type: 'full_user_list', 
                 users: allUsers 
               });
+              
+              // 자동으로 사용자 정보를 사용자에게 전송 (클라이언트에서 인벤토리 및 낚시 스킬 레벨 업데이트를 위해)
+              const userInfo = {
+                type: 'userInfo',
+                userId: userId,
+                inventory: items,
+                gold: gold,
+                skillLevel: skillLevel
+              };
+              ws.send(JSON.stringify(userInfo));
+              console.log('사용자 정보 자동 전송:', userId);
+              
             } catch (e) {
               console.error('사용자 입장 처리 중 오류:', e);
               ws.send(JSON.stringify({
