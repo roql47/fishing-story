@@ -1072,6 +1072,21 @@ async function initializeServer() {
               const currentSkill = fishingSkills.get(userId) || 0;
               fishingSkills.set(userId, currentSkill + 1);
               
+              // MongoDB에 낚시 스킬 레벨 직접 저장 (새 코드)
+              (async () => {
+                try {
+                  const { FishingSkill } = require('./models/database');
+                  await FishingSkill.findOneAndUpdate(
+                    { userId },
+                    { userId, level: currentSkill + 1 },
+                    { upsert: true, new: true }
+                  );
+                  console.log(`낚시 스킬 레벨 MongoDB 직접 업데이트 완료 (${userId}): ${currentSkill + 1}`);
+                } catch (e) {
+                  console.error('낚시 스킬 레벨 직접 저장 오류:', e);
+                }
+              })();
+              
               // 자동 장착
               autoEquip(userId);
               
