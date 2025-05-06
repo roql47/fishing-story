@@ -705,6 +705,153 @@
     .rare-fish .fish-icon {
       color: #ff9800;
     }
+    
+    .rare-fish .fish-icon {
+      color: #ff9800;
+    }
+    
+    /* 동료모집 스타일 */
+    .recruit-container {
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+    }
+    
+    .recruit-description {
+      margin-bottom: 20px;
+      text-align: center;
+      color: #555;
+      line-height: 1.5;
+    }
+    
+    .companion-name {
+      font-weight: bold;
+      color: #673AB7;
+    }
+    
+    .companions-container {
+      display: flex;
+      justify-content: space-around;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    
+    .companion-card {
+      width: 180px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .companion-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .companion-image {
+      height: 120px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .companion-emoji {
+      font-size: 4em;
+    }
+    
+    .companion-info {
+      padding: 15px;
+      text-align: center;
+    }
+    
+    .companion-info h3 {
+      margin: 0 0 8px;
+      color: #673AB7;
+    }
+    
+    .companion-info p {
+      margin: 0;
+      color: #666;
+      font-size: 0.9em;
+    }
+    
+    .recruit-controls {
+      text-align: center;
+      margin-top: 20px;
+    }
+    
+    .recruit-button {
+      background: linear-gradient(135deg, #9C27B0, #673AB7);
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: all 0.3s ease;
+      box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+    }
+    
+    .recruit-button:hover {
+      background: linear-gradient(135deg, #8E24AA, #5E35B1);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+    }
+    
+    .recruit-button:disabled {
+      background: #9e9e9e;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .recruit-result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      min-height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+    }
+    
+    .recruit-success {
+      background-color: #E8F5E9;
+      color: #2E7D32;
+      border: 1px solid #A5D6A7;
+    }
+    
+    .recruit-fail {
+      background-color: #FFEBEE;
+      color: #C62828;
+      border: 1px solid #FFCDD2;
+    }
+    
+    .recruit-animation {
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .skill-info {
+      background: linear-gradient(to right, #e3f2fd, #bbdefb);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
   </style>
 </head>
 <body>
@@ -761,6 +908,7 @@
       <div class="tabs">
         <div class="tab active" data-tab="chat">💬 채팅</div>
         <div class="tab" data-tab="shop">🛒 상점</div>
+        <div class="tab" data-tab="recruit">🧙‍♀️ 동료모집</div>
       </div>
 
       <div id="chatTab" class="tab-content active">
@@ -785,6 +933,51 @@
           </div>
         </div>
       </div>
+      
+      <div id="recruitTab" class="tab-content">
+        <div class="shop-container">
+          <div class="shop-title">🧙‍♀️ 동료 모집소</div>
+          <div class="recruit-container">
+            <div class="recruit-description">
+              <p>별조각 1개를 사용하여 동료를 모집할 수 있습니다. (성공 확률: 15%)</p>
+              <p>모집 가능한 동료: <span class="companion-name">실</span>, <span class="companion-name">피에나</span>, <span class="companion-name">애비게일</span></p>
+            </div>
+            <div class="companions-container">
+              <div class="companion-card">
+                <div class="companion-image" style="background-color: #FFCDD2;">
+                  <span class="companion-emoji">👩‍🦰</span>
+                </div>
+                <div class="companion-info">
+                  <h3>실</h3>
+                  <p>낚시 확률 +5% 보너스</p>
+                </div>
+              </div>
+              <div class="companion-card">
+                <div class="companion-image" style="background-color: #E1BEE7;">
+                  <span class="companion-emoji">🧝‍♀️</span>
+                </div>
+                <div class="companion-info">
+                  <h3>피에나</h3>
+                  <p>물고기 가격 +10% 보너스</p>
+                </div>
+              </div>
+              <div class="companion-card">
+                <div class="companion-image" style="background-color: #BBDEFB;">
+                  <span class="companion-emoji">👩‍🎤</span>
+                </div>
+                <div class="companion-info">
+                  <h3>애비게일</h3>
+                  <p>희귀 물고기 확률 +3% 보너스</p>
+                </div>
+              </div>
+            </div>
+            <div class="recruit-controls">
+              <button id="recruitButton" class="recruit-button">동료 모집하기 (별조각 1개)</button>
+              <div id="recruitResult" class="recruit-result"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="side-container">
@@ -803,6 +996,25 @@
         </div>
         <div class="fishing-info-content">
           <div id="currentFishInfo">로딩 중...</div>
+        </div>
+      </div>
+      
+      <!-- 동료 현황 위젯 추가 -->
+      <div class="fishing-info-widget">
+        <div class="fishing-info-header" style="background: linear-gradient(135deg, #9C27B0, #673AB7);">
+          <span class="fishing-info-title">👥 동료 현황</span>
+          <span class="fishing-info-toggle">▼</span>
+        </div>
+        <div class="fishing-info-content">
+          <div id="companionStatus">
+            <div class="skill-info" style="background: linear-gradient(to right, #f3e5f5, #e1bee7);">
+              <div class="skill-level" style="color: #9C27B0;">동료 정보</div>
+              <div class="skill-tip">함께하는 친구들</div>
+            </div>
+            <div class="fish-card" style="text-align: center; border-left-color: #9C27B0;">
+              <div style="width: 100%;">보유한 동료가 없습니다.</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -919,6 +1131,9 @@
         // 낚시 데이터 로드
         loadFishData();
         console.log("사용자 정보 로드 완료 - 낚시 데이터 로드 호출됨");
+        
+        // 동료 현황 초기화
+        updateCompanionDisplay([]);
         
         // 자동 채팅 연결
         connectToChat();
@@ -1351,6 +1566,7 @@
     // 초기 목록 업데이트
     updateUserList();
 
+    // 메시지를 채팅에 추가하는 함수
     function addMessage(msg, type = 'chat') {
       if (type === 'join' && msg.userId && msg.nickname) {
         // join 메시지: 닉네임을 클릭 가능하도록 표시
@@ -1481,6 +1697,11 @@
               console.log(`서버에서 받은 낚시 스킬 레벨(${data.skillLevel})을 저장했습니다.`);
               // 낚시 정보 업데이트
               updateFishInfoDisplay();
+              
+              // 동료 정보 업데이트
+              if (data.companions) {
+                updateCompanionDisplay(data.companions);
+              }
             }
             
             // 인벤토리 정보 모달로 표시
@@ -1500,6 +1721,64 @@
             currentUserData = data.users;
             console.log('전체 사용자 목록 업데이트:', currentUserData);
             updateUserList();
+          } else if (data.type === 'recruitResult') {
+            // 동료 모집 결과 처리
+            const recruitButton = document.getElementById('recruitButton');
+            const recruitResult = document.getElementById('recruitResult');
+            
+            // 버튼 활성화
+            if (recruitButton) recruitButton.disabled = false;
+            
+            if (data.success) {
+              // 성공 시 처리
+              const companion = data.companion;
+              let companionEmoji = '👤';
+              let companionColor = '#673AB7';
+              
+              // 해당 동료 찾기
+              const companionType = companionTypes.find(type => type.id === companion.id);
+              if (companionType) {
+                companionEmoji = companionType.emoji;
+                companionColor = companionType.color;
+              }
+              
+              // 결과 메시지 표시
+              recruitResult.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                  <span style="font-size: 2em;">${companionEmoji}</span>
+                  <div>
+                    <div style="font-size: 1.2em; color: ${companionColor};">${companion.name} 동료 획득!</div>
+                    <div style="font-size: 0.9em; color: #555;">${companion.bonus}</div>
+                  </div>
+                </div>
+              `;
+              recruitResult.className = 'recruit-result recruit-success';
+              
+              // 동료 정보 업데이트
+              if (data.companions) {
+                updateCompanionDisplay(data.companions);
+              }
+              
+              // 성공 메시지 채팅창에 표시
+              addMessage(`🎉 축하합니다! ${companion.name} 동료를 얻었습니다!`);
+            } else {
+              // 실패 시 처리
+              if (data.error === 'no_star_fragment') {
+                recruitResult.textContent = '별조각이 부족합니다. 별조각을 얻은 후 다시 시도하세요.';
+              } else if (data.error === 'already_has_companion') {
+                recruitResult.textContent = '이미 보유한 동료입니다. 다른 동료를 뽑을 확률이 높아집니다!';
+              } else if (data.error === 'not_authenticated') {
+                recruitResult.textContent = '로그인 후 이용할 수 있습니다.';
+              } else {
+                recruitResult.textContent = '동료 모집에 실패했습니다. 다시 시도하세요.';
+              }
+              recruitResult.className = 'recruit-result recruit-fail';
+            }
+          } else if (data.type === 'companions') {
+            // 동료 목록 업데이트
+            if (data.companions) {
+              updateCompanionDisplay(data.companions);
+            }
           } else {
             addMessage(data);
           }
@@ -1947,6 +2226,57 @@
         });
     }
     
+    // 동료 현황 업데이트 함수
+    function updateCompanionDisplay(companions) {
+      console.log("동료 정보 업데이트...", companions);
+      
+      const companionStatus = document.getElementById('companionStatus');
+      if (!companionStatus) {
+        console.error("동료 현황 요소를 찾을 수 없습니다.");
+        return;
+      }
+      
+      // 기본 헤더 정보
+      let htmlContent = `
+        <div class="skill-info" style="background: linear-gradient(to right, #f3e5f5, #e1bee7);">
+          <div class="skill-level" style="color: #9C27B0;">동료 정보</div>
+          <div class="skill-tip">함께하는 친구들</div>
+        </div>
+      `;
+      
+      // 동료가 없는 경우
+      if (!companions || !Array.isArray(companions) || companions.length === 0) {
+        htmlContent += `
+          <div class="fish-card" style="text-align: center; border-left-color: #9C27B0;">
+            <div style="width: 100%;">보유한 동료가 없습니다.</div>
+          </div>
+        `;
+      } else {
+        // 각 동료 정보 표시
+        companions.forEach(companion => {
+          let companionEmoji = '👤';
+          if (companion.type === 'animal') companionEmoji = '🐾';
+          if (companion.type === 'magical') companionEmoji = '✨';
+          if (companion.type === 'robot') companionEmoji = '🤖';
+          
+          htmlContent += `
+            <div class="fish-card" style="border-left-color: #9C27B0;">
+              <div class="fish-icon" style="color: #9C27B0;">${companionEmoji}</div>
+              <div class="fish-details">
+                <div class="fish-name">${companion.name}</div>
+                <div class="fish-stats">
+                  <div>레벨: ${companion.level || 1}</div>
+                  ${companion.skill ? `<div style="margin-left: 10px;">특기: ${companion.skill}</div>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      companionStatus.innerHTML = htmlContent;
+    }
+    
     // 기본 물고기 데이터 사용 함수
     function useDefaultFishData() {
       console.log("기본 물고기 데이터 사용");
@@ -2016,6 +2346,18 @@
           fishingInfoWidget.classList.toggle('collapsed');
         });
       }
+      
+      // 동료 현황 위젯 토글 기능 추가
+      const allInfoHeaders = document.querySelectorAll('.fishing-info-header');
+      
+      allInfoHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+          const parentWidget = this.closest('.fishing-info-widget');
+          if (parentWidget) {
+            parentWidget.classList.toggle('collapsed');
+          }
+        });
+      });
       
       // 상점 탭 클릭 이벤트 처리 (추가)
       const shopTabs = document.querySelectorAll('.shop-category');
@@ -2097,6 +2439,208 @@
       
       connect(currentUser.username, roomName);
     }
+
+    // 동료 모집 관련 변수와 함수
+    const companionTypes = [
+      { id: 'sil', name: '실', emoji: '👩‍🦰', type: 'human', bonus: '낚시 확률 +5%', color: '#FFCDD2' },
+      { id: 'fiena', name: '피에나', emoji: '🧝‍♀️', type: 'elf', bonus: '물고기 가격 +10%', color: '#E1BEE7' },
+      { id: 'abigail', name: '애비게일', emoji: '👩‍🎤', type: 'wizard', bonus: '희귀 물고기 확률 +3%', color: '#BBDEFB' }
+    ];
+    
+    // 페이지 로드 시 동료 모집 버튼에 이벤트 핸들러 등록
+    document.addEventListener('DOMContentLoaded', function() {
+      // 기존 코드는 그대로 유지...
+      
+      // 동료 모집 버튼 이벤트 핸들러
+      const recruitButton = document.getElementById('recruitButton');
+      const recruitResult = document.getElementById('recruitResult');
+      
+      if (recruitButton) {
+        recruitButton.addEventListener('click', function() {
+          // 로그인 체크
+          if (currentUser.isGuest) {
+            recruitResult.textContent = '동료 모집은 로그인 후 이용할 수 있습니다.';
+            recruitResult.className = 'recruit-result recruit-fail';
+            return;
+          }
+          
+          // 서버 연결 체크
+          if (!isConnected) {
+            recruitResult.textContent = '서버에 연결되어 있지 않습니다. 먼저 채팅방에 입장하세요.';
+            recruitResult.className = 'recruit-result recruit-fail';
+            return;
+          }
+          
+          // 버튼 비활성화 및 애니메이션 시작
+          recruitButton.disabled = true;
+          recruitResult.textContent = '동료를 찾는 중...';
+          recruitResult.className = 'recruit-result recruit-animation';
+          
+          // 서버로 동료 모집 요청 전송
+          socket.send(JSON.stringify({
+            type: 'recruitCompanion',
+            userId: currentUser.uuid
+          }));
+        });
+      }
+      
+      // 동료 모집 탭 클릭 시 동료 정보 업데이트
+      const recruitTab = document.querySelector('.tab[data-tab="recruit"]');
+      if (recruitTab) {
+        recruitTab.addEventListener('click', function() {
+          // 사용자가 로그인한 상태인 경우에만 동료 정보 요청
+          if (!currentUser.isGuest && isConnected) {
+            socket.send(JSON.stringify({
+              type: 'requestCompanions',
+              userId: currentUser.uuid
+            }));
+          }
+        });
+      }
+    });
+    
+    // 서버로부터 메시지 처리 확장
+    socket.onmessage = (event) => {
+      console.log('메시지 수신:', event.data);
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (e) {
+        data = { type: 'chat', text: event.data };
+      }
+      
+      // 메시지 타입에 따른 처리
+      if (data.type === 'join') {
+        addMessage(data, 'join');
+      } else if (data.type === 'leave') {
+        addMessage(data, 'leave');
+      } else if (data.type === 'userInfo') {
+        console.log('사용자 정보 수신:', data);
+        
+        // 사용자 정보가 비어있거나 잘못된 경우 처리
+        if (!data.userId) {
+          console.error('유효하지 않은 사용자 ID:', data);
+          return;
+        }
+        
+        // 사용자 정보 찾기 - currentUserData가 배열이 아닌 경우 초기화
+        if (!Array.isArray(currentUserData)) {
+          currentUserData = [];
+        }
+        
+        // 사용자 찾기
+        const userInfo = currentUserData.find(user => user.userId === data.userId);
+        let clickedUserNickname;
+        
+        if (userInfo) {
+          clickedUserNickname = userInfo.nickname;
+          console.log(`사용자 정보 찾음: ${clickedUserNickname}`);
+        } else {
+          // 사용자 정보를 찾을 수 없는 경우 현재 사용자인지 확인
+          if (data.userId === currentUser.uuid) {
+            clickedUserNickname = currentUser.username || '본인';
+            console.log(`현재 사용자 정보: ${clickedUserNickname}`);
+          } else {
+            clickedUserNickname = '알 수 없음';
+            console.log(`사용자 정보를 찾을 수 없음, userId: ${data.userId}`);
+          }
+        }
+        
+        console.log(`사용자 정보 표시: ${clickedUserNickname}, 인벤토리: `, data.inventory);
+        console.log(`사용자 골드: ${data.gold}, 스킬 레벨: ${data.skillLevel}`);
+        
+        // 본인 정보인 경우 스킬 레벨 업데이트
+        if (data.userId === currentUser.uuid && data.skillLevel !== undefined) {
+          localStorage.setItem('fishingSkillLevel', data.skillLevel.toString());
+          console.log(`서버에서 받은 낚시 스킬 레벨(${data.skillLevel})을 저장했습니다.`);
+          // 낚시 정보 업데이트
+          updateFishInfoDisplay();
+          
+          // 동료 정보 업데이트
+          if (data.companions) {
+            updateCompanionDisplay(data.companions);
+          }
+        }
+        
+        // 인벤토리 정보 모달로 표시
+        showInventoryModal(
+          clickedUserNickname,
+          data.inventory || {},
+          data.gold || 0,
+          data.skillLevel || 1
+        );
+      } else if (data.type === 'user_list') {
+        // 기존 사용자 목록을 처리
+        currentUserData = data.users;
+        console.log('사용자 목록 업데이트:', currentUserData);
+        updateUserList();
+      } else if (data.type === 'full_user_list') {
+        // 전체 사용자 목록으로 업데이트
+        currentUserData = data.users;
+        console.log('전체 사용자 목록 업데이트:', currentUserData);
+        updateUserList();
+      } else if (data.type === 'recruitResult') {
+        // 동료 모집 결과 처리
+        const recruitButton = document.getElementById('recruitButton');
+        const recruitResult = document.getElementById('recruitResult');
+        
+        // 버튼 활성화
+        if (recruitButton) recruitButton.disabled = false;
+        
+        if (data.success) {
+          // 성공 시 처리
+          const companion = data.companion;
+          let companionEmoji = '👤';
+          let companionColor = '#673AB7';
+          
+          // 해당 동료 찾기
+          const companionType = companionTypes.find(type => type.id === companion.id);
+          if (companionType) {
+            companionEmoji = companionType.emoji;
+            companionColor = companionType.color;
+          }
+          
+          // 결과 메시지 표시
+          recruitResult.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+              <span style="font-size: 2em;">${companionEmoji}</span>
+              <div>
+                <div style="font-size: 1.2em; color: ${companionColor};">${companion.name} 동료 획득!</div>
+                <div style="font-size: 0.9em; color: #555;">${companion.bonus}</div>
+              </div>
+            </div>
+          `;
+          recruitResult.className = 'recruit-result recruit-success';
+          
+          // 동료 정보 업데이트
+          if (data.companions) {
+            updateCompanionDisplay(data.companions);
+          }
+          
+          // 성공 메시지 채팅창에 표시
+          addMessage(`🎉 축하합니다! ${companion.name} 동료를 얻었습니다!`);
+        } else {
+          // 실패 시 처리
+          if (data.error === 'no_star_fragment') {
+            recruitResult.textContent = '별조각이 부족합니다. 별조각을 얻은 후 다시 시도하세요.';
+          } else if (data.error === 'already_has_companion') {
+            recruitResult.textContent = '이미 보유한 동료입니다. 다른 동료를 뽑을 확률이 높아집니다!';
+          } else if (data.error === 'not_authenticated') {
+            recruitResult.textContent = '로그인 후 이용할 수 있습니다.';
+          } else {
+            recruitResult.textContent = '동료 모집에 실패했습니다. 다시 시도하세요.';
+          }
+          recruitResult.className = 'recruit-result recruit-fail';
+        }
+      } else if (data.type === 'companions') {
+        // 동료 목록 업데이트
+        if (data.companions) {
+          updateCompanionDisplay(data.companions);
+        }
+      } else {
+        addMessage(data);
+      }
+    };
   </script>
 </body>
 </html>
