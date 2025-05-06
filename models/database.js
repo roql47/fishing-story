@@ -49,7 +49,7 @@ const goldSchema = new mongoose.Schema({
 // 낚시 스킬 레벨 스키마 추가
 const fishingSkillSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
-  level: { type: Number, default: 0 }
+  level: { type: Number, default: 1 }
 });
 
 // 채팅 로그를 위한 스키마 추가
@@ -61,11 +61,24 @@ const chatLogSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 
+// 동료 스키마 추가
+const companionSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  companions: [{
+    id: { type: String, required: true },
+    name: { type: String, required: true },
+    type: { type: String, required: true },
+    bonus: { type: String, required: true },
+    acquiredAt: { type: Date, default: Date.now }
+  }]
+});
+
 const User = mongoose.model('User', userSchema);
 const Inventory = mongoose.model('Inventory', inventorySchema);
 const Gold = mongoose.model('Gold', goldSchema);
 const FishingSkill = mongoose.model('FishingSkill', fishingSkillSchema);
 const ChatLog = mongoose.model('ChatLog', chatLogSchema);
+const Companion = mongoose.model('Companion', companionSchema);
 
 // 초기 연결 시도
 connectToMongoDB();
@@ -81,6 +94,7 @@ module.exports = {
   Gold,
   FishingSkill,
   ChatLog,
+  Companion,
   isConnected,
   connectToMongoDB
 }; 
