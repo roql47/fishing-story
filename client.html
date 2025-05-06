@@ -1641,9 +1641,11 @@
           if (currentUser.uuid) {
             setTimeout(() => {
               console.log("본인 정보 요청 전송 (UUID:", currentUser.uuid, ")");
+              // 자동 정보 요청은 모달 표시 없이 진행
               socket.send(JSON.stringify({
                 type: 'requestUserInfo',
-                targetUserId: currentUser.uuid
+                targetUserId: currentUser.uuid,
+                autoRequest: true  // 자동 요청임을 표시
               }));
             }, 2000);
           } else {
@@ -1721,13 +1723,17 @@
               }
             }
             
-            // 인벤토리 정보 모달로 표시
-            showInventoryModal(
-              clickedUserNickname,
-              data.inventory || {},
-              data.gold || 0,
-              data.skillLevel || 1
-            );
+            // 자동 요청이 아닌 경우에만 인벤토리 모달 표시
+            if (inventoryModalRequested && !data.autoRequest) {
+              showInventoryModal(
+                clickedUserNickname,
+                data.inventory || {},
+                data.gold || 0,
+                data.skillLevel || 1
+              );
+              // 요청 플래그 초기화
+              inventoryModalRequested = false;
+            }
           } else if (data.type === 'user_list') {
             // 기존 사용자 목록을 처리
             currentUserData = data.users;
@@ -1841,6 +1847,9 @@
       
       // 요청 전송 전 로딩 메시지 표시
       showInventoryModal(nickname, {}, 0, 0, true);
+      
+      // 인벤토리 모달 표시 요청 플래그 설정
+      inventoryModalRequested = true;
       
       // 사용자 정보 요청 전송
       socket.send(JSON.stringify({
@@ -2579,13 +2588,17 @@
           }
         }
         
-        // 인벤토리 정보 모달로 표시
-        showInventoryModal(
-          clickedUserNickname,
-          data.inventory || {},
-          data.gold || 0,
-          data.skillLevel || 1
-        );
+        // 자동 요청이 아닌 경우에만 인벤토리 모달 표시
+        if (inventoryModalRequested && !data.autoRequest) {
+          showInventoryModal(
+            clickedUserNickname,
+            data.inventory || {},
+            data.gold || 0,
+            data.skillLevel || 1
+          );
+          // 요청 플래그 초기화
+          inventoryModalRequested = false;
+        }
       } else if (data.type === 'user_list') {
         // 기존 사용자 목록을 처리
         currentUserData = data.users;
