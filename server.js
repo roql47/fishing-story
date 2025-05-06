@@ -5,7 +5,7 @@ const path = require('path');
 const express = require('express');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const { User, Inventory, Gold, FishingSkill, ChatLog, isConnected, connectToMongoDB } = require('./models/database');
+const { User, Inventory, Gold, FishingSkill, ChatLog, Companion, isConnected, connectToMongoDB } = require('./models/database');
 const userRouter = require('./routes/user');
 const adminRouter = require('./routes/admin');
 const fishingRouter = require('./routes/fishing');
@@ -164,16 +164,20 @@ app.post('/api/register', async (req, res) => {
     const gold = new Gold({ userId: uuid, amount: 0 });
     // 낚시 스킬 레벨 초기화 (추가)
     const fishingSkill = new FishingSkill({ userId: uuid, level: 1 });
+    // 동료 데이터 초기화
+    const companion = new Companion({ userId: uuid, companions: [] });
     
     await inventory.save();
     await gold.save();
     await fishingSkill.save(); // 낚시 스킬 레벨 저장 (추가)
+    await companion.save(); // 동료 데이터 저장
     
     // 메모리에도 추가
     users.set(username, { password, uuid });
     inventories.set(uuid, {});
     userGold.set(uuid, 0);
     fishingSkills.set(uuid, 1); // 메모리에 낚시 스킬 레벨 설정 (추가)
+    userCompanions.set(uuid, []); // 메모리에 동료 데이터 설정
     
     return res.status(201).json({ success: true, message: '회원가입이 완료되었습니다.', uuid });
   } catch (e) {
@@ -221,6 +225,7 @@ async function loadDatabase() {
     const inventoriesData = await Inventory.find({});
     const goldData = await Gold.find({});
     const fishingSkillData = await FishingSkill.find({});
+    const companionData = await Companion.find({});
     
     for (const inv of inventoriesData) {
       inventories.set(inv.userId, inv.items);
@@ -232,6 +237,11 @@ async function loadDatabase() {
     
     for (const skill of fishingSkillData) {
       fishingSkills.set(skill.userId, skill.level);
+    }
+    
+    // 동료 데이터 로딩
+    for (const comp of companionData) {
+      userCompanions.set(comp.userId, comp.companions);
     }
     
     console.log('데이터베이스 로드 완료');
@@ -280,6 +290,17 @@ async function saveDatabase() {
           { userId, level },
           { upsert: true }
         ).catch(e => console.error(`낚시 스킬 레벨 저장 에러 (${userId}):`, e))
+      );
+    }
+    
+    // 동료 데이터 저장
+    for (const [userId, companions] of userCompanions) {
+      savePromises.push(
+        Companion.findOneAndUpdate(
+          { userId },
+          { userId, companions },
+          { upsert: true }
+        ).catch(e => console.error(`동료 데이터 저장 에러 (${userId}):`, e))
       );
     }
     
@@ -342,6 +363,16 @@ const equippedAccessory = new Map();  // 장착된 악세사리
 const rodEnhancement = new Map();     // 낚시대 강화 수치
 const fishingSkills = new Map();      // 낚시 실력 (레벨)
 const lastFishingTime = new Map();    // 마지막 낚시 시간
+
+// 동료 관련 상수와 맵
+const companions = [
+  { id: 'sil', name: '실', type: 'human', bonus: '낚시 확률 +5%' },
+  { id: 'fiena', name: '피에나', type: 'elf', bonus: '물고기 가격 +10%' },
+  { id: 'abigail', name: '애비게일', type: 'wizard', bonus: '희귀 물고기 확률 +3%' }
+];
+
+// Map: userId → 보유 동료 배열
+const userCompanions = new Map();
 
 // 자동 장착 함수 (낚시대, 악세사리)
 function autoEquip(userId) {
@@ -891,13 +922,19 @@ async function initializeServer() {
               const fishingSkillDoc = await FishingSkill.findOne({ userId: targetUserId });
               const skillLevel = fishingSkillDoc ? fishingSkillDoc.level : 1;
               
+              // 동료 정보 가져오기
+              const companionDoc = await Companion.findOne({ userId: targetUserId });
+              const companions = companionDoc ? companionDoc.companions : [];
+              
               // 메모리 데이터 업데이트
               inventories.set(targetUserId, items);
               userGold.set(targetUserId, gold);
               fishingSkills.set(targetUserId, skillLevel);
+              userCompanions.set(targetUserId, companions);
               
               console.log('사용자 인벤토리:', items);
               console.log('사용자 낚시 스킬 레벨:', skillLevel);
+              console.log('사용자 동료 정보:', companions);
               
               // 응답 보내기
               const info = {
@@ -905,7 +942,8 @@ async function initializeServer() {
                 userId: targetUserId,
                 inventory: items,
                 gold: gold,
-                skillLevel: skillLevel
+                skillLevel: skillLevel,
+                companions: companions
               };
               ws.send(JSON.stringify(info));
               
@@ -1007,6 +1045,24 @@ async function initializeServer() {
               fishingSkills.set(userId, skillLevel);
               console.log('로드된 낚시 스킬 레벨:', skillLevel);
               
+              // 동료 정보 확인 및 로드
+              const companionDoc = await Companion.findOne({ userId });
+              let companions = companionDoc ? companionDoc.companions : [];
+              
+              if (!companionDoc) {
+                // 새 동료 데이터 생성 (빈 배열)
+                await Companion.updateOne(
+                  { userId },
+                  { userId, companions: [] },
+                  { upsert: true }
+                );
+                companions = [];
+              }
+              
+              // 메모리에 동료 정보 설정
+              userCompanions.set(userId, companions);
+              console.log('로드된 동료 정보:', companions);
+              
               // 모든 참여자 목록 생성
               const allUsers = [];
               for (const [, info] of clients) {
@@ -1045,7 +1101,8 @@ async function initializeServer() {
                 userId: userId,
                 inventory: items,
                 gold: gold,
-                skillLevel: skillLevel
+                skillLevel: skillLevel,
+                companions: companions
               };
               ws.send(JSON.stringify(userInfo));
               console.log('사용자 정보 자동 전송:', userId);
@@ -1059,6 +1116,184 @@ async function initializeServer() {
             }
           })();
           
+          return;
+        }
+
+        // 동료 모집 처리
+        if (parsed.type === 'recruitCompanion') {
+          const info = clients.get(ws);
+          if (!info) return;
+          const { userId, nickname, room } = info;
+          
+          // 비동기 처리를 위한 즉시 실행 함수
+          (async () => {
+            try {
+              // 인증된 사용자인지 확인
+              if (!userId) {
+                ws.send(JSON.stringify({ 
+                  type: 'recruitResult', 
+                  success: false, 
+                  error: 'not_authenticated' 
+                }));
+                return;
+              }
+              
+              // 사용자 인벤토리 확인
+              const userInventory = inventories.get(userId) || {};
+              const starFragment = userInventory['별조각'] || 0;
+              
+              // 별조각 확인
+              if (starFragment < 1) {
+                ws.send(JSON.stringify({ 
+                  type: 'recruitResult', 
+                  success: false, 
+                  error: 'no_star_fragment' 
+                }));
+                return;
+              }
+              
+              // 가챠 확률 계산 (15% 성공률)
+              const isSuccess = Math.random() < 0.15;
+              
+              // 별조각 소비
+              userInventory['별조각'] = starFragment - 1;
+              inventories.set(userId, userInventory);
+              
+              // MongoDB에 인벤토리 업데이트
+              await Inventory.findOneAndUpdate(
+                { userId },
+                { userId, items: userInventory },
+                { upsert: true }
+              );
+              
+              if (isSuccess) {
+                // 동료 선택 (랜덤)
+                const randomCompanionIndex = Math.floor(Math.random() * companions.length);
+                const newCompanion = companions[randomCompanionIndex];
+                
+                // 동료 수집 (이미 있는 경우 중복 방지)
+                let userCompanionList = userCompanions.get(userId) || [];
+                
+                // 이미 해당 동료를 가지고 있는지 확인
+                const existingCompanion = userCompanionList.find(comp => comp.id === newCompanion.id);
+                if (existingCompanion) {
+                  // 이미 가지고 있는 동료인 경우 - 클라이언트에 알림
+                  ws.send(JSON.stringify({
+                    type: 'recruitResult',
+                    success: false,
+                    error: 'already_has_companion'
+                  }));
+                  return;
+                }
+                
+                // 새 동료를 목록에 추가
+                userCompanionList.push({
+                  id: newCompanion.id,
+                  name: newCompanion.name,
+                  type: newCompanion.type,
+                  bonus: newCompanion.bonus,
+                  acquiredAt: new Date()
+                });
+                
+                userCompanions.set(userId, userCompanionList);
+                
+                // MongoDB에 동료 정보 저장
+                await Companion.findOneAndUpdate(
+                  { userId },
+                  { userId, companions: userCompanionList },
+                  { upsert: true }
+                );
+                
+                // 클라이언트에 성공 결과 전송
+                ws.send(JSON.stringify({
+                  type: 'recruitResult',
+                  success: true,
+                  companion: newCompanion,
+                  companions: userCompanionList
+                }));
+                
+                // 채팅방에 공지
+                const recruitMessage = `[${getTime()}] 🎉 ${nickname}님이 ${newCompanion.name} 동료를 획득했습니다!`;
+                broadcast(room, {
+                  type: 'chat',
+                  text: recruitMessage
+                });
+                
+                // 로그 저장
+                await saveLog(room, recruitMessage, nickname, userId);
+                
+              } else {
+                // 실패 시
+                ws.send(JSON.stringify({
+                  type: 'recruitResult',
+                  success: false,
+                  error: 'failed'
+                }));
+              }
+              
+              // 인벤토리 업데이트 알림
+              ws.send(JSON.stringify({
+                type: 'userInfo',
+                userId: userId,
+                inventory: userInventory,
+                gold: userGold.get(userId) || 0,
+                skillLevel: fishingSkills.get(userId) || 1,
+                companions: userCompanions.get(userId) || []
+              }));
+              
+            } catch (err) {
+              console.error('동료 모집 중 오류 발생:', err);
+              ws.send(JSON.stringify({
+                type: 'recruitResult',
+                success: false,
+                error: 'server_error'
+              }));
+            }
+          })();
+          return;
+        }
+        
+        // 동료 정보 요청 처리
+        if (parsed.type === 'requestCompanions') {
+          const info = clients.get(ws);
+          if (!info) return;
+          const targetUserId = parsed.userId;
+          
+          // 비동기 처리를 위한 즉시 실행 함수
+          (async () => {
+            try {
+              // 인증된 사용자인지 확인
+              if (!targetUserId) {
+                ws.send(JSON.stringify({ 
+                  type: 'companions', 
+                  companions: [] 
+                }));
+                return;
+              }
+              
+              // 동료 정보 가져오기 (메모리에 없으면 DB에서 로드)
+              let companionList = userCompanions.get(targetUserId);
+              
+              if (!companionList) {
+                const companionDoc = await Companion.findOne({ userId: targetUserId });
+                companionList = companionDoc ? companionDoc.companions : [];
+                userCompanions.set(targetUserId, companionList);
+              }
+              
+              // 클라이언트에 동료 정보 전송
+              ws.send(JSON.stringify({
+                type: 'companions',
+                companions: companionList
+              }));
+              
+            } catch (err) {
+              console.error('동료 정보 요청 중 오류 발생:', err);
+              ws.send(JSON.stringify({
+                type: 'companions',
+                companions: []
+              }));
+            }
+          })();
           return;
         }
 
@@ -1274,34 +1509,34 @@ async function initializeServer() {
             
             if (skillLevel === 2) { fishStartIndex = 1; fishEndIndex = 11; }
             else if (skillLevel === 3) { fishStartIndex = 2; fishEndIndex = 12; }
-            else if (skillLevel === 4) { fishStartIndex = 3; fishEndIndex = 12; }
-            else if (skillLevel === 5) { fishStartIndex = 4; fishEndIndex = 13; }
-            else if (skillLevel === 6) { fishStartIndex = 5; fishEndIndex = 14; }
-            else if (skillLevel === 7) { fishStartIndex = 6; fishEndIndex = 15; }
-            else if (skillLevel === 8) { fishStartIndex = 7; fishEndIndex = 16; }
-            else if (skillLevel === 9) { fishStartIndex = 8; fishEndIndex = 17; }
-            else if (skillLevel === 10) { fishStartIndex = 9; fishEndIndex = 18; }
-            else if (skillLevel === 11) { fishStartIndex = 10; fishEndIndex = 19; }
-            else if (skillLevel === 12) { fishStartIndex = 11; fishEndIndex = 20; }
-            else if (skillLevel === 13) { fishStartIndex = 12; fishEndIndex = 21; }
-            else if (skillLevel === 14) { fishStartIndex = 13; fishEndIndex = 22; }
-            else if (skillLevel === 15) { fishStartIndex = 14; fishEndIndex = 23; }
-            else if (skillLevel === 16) { fishStartIndex = 15; fishEndIndex = 24; }
-            else if (skillLevel === 17) { fishStartIndex = 16; fishEndIndex = 25; }
-            else if (skillLevel === 18) { fishStartIndex = 17; fishEndIndex = 26; }
-            else if (skillLevel === 19) { fishStartIndex = 18; fishEndIndex = 27; }
-            else if (skillLevel === 20) { fishStartIndex = 19; fishEndIndex = 28; }
-            else if (skillLevel === 21) { fishStartIndex = 20; fishEndIndex = 29; }
-            else if (skillLevel === 22) { fishStartIndex = 21; fishEndIndex = 30; }
-            else if (skillLevel === 23) { fishStartIndex = 22; fishEndIndex = 31; }
-            else if (skillLevel === 24) { fishStartIndex = 23; fishEndIndex = 32; }
-            else if (skillLevel === 25) { fishStartIndex = 24; fishEndIndex = 33; }
-            else if (skillLevel === 26) { fishStartIndex = 25; fishEndIndex = 34; }
-            else if (skillLevel === 27) { fishStartIndex = 26; fishEndIndex = 35; }
-            else if (skillLevel === 28) { fishStartIndex = 27; fishEndIndex = 36; }
-            else if (skillLevel === 29) { fishStartIndex = 28; fishEndIndex = 37; }
-            else if (skillLevel === 30) { fishStartIndex = 29; fishEndIndex = 38; }
-            else if (skillLevel >= 31) { fishStartIndex = 30; fishEndIndex = 39; }
+            else if (skillLevel === 4) { fishStartIndex = 3; fishEndIndex = 13; }
+            else if (skillLevel === 5) { fishStartIndex = 4; fishEndIndex = 14; }
+            else if (skillLevel === 6) { fishStartIndex = 5; fishEndIndex = 15; }
+            else if (skillLevel === 7) { fishStartIndex = 6; fishEndIndex = 16; }
+            else if (skillLevel === 8) { fishStartIndex = 7; fishEndIndex = 17; }
+            else if (skillLevel === 9) { fishStartIndex = 8; fishEndIndex = 18; }
+            else if (skillLevel === 10) { fishStartIndex = 9; fishEndIndex = 19; }
+            else if (skillLevel === 11) { fishStartIndex = 10; fishEndIndex = 20; }
+            else if (skillLevel === 12) { fishStartIndex = 11; fishEndIndex = 21; }
+            else if (skillLevel === 13) { fishStartIndex = 12; fishEndIndex = 22; }
+            else if (skillLevel === 14) { fishStartIndex = 13; fishEndIndex = 23; }
+            else if (skillLevel === 15) { fishStartIndex = 14; fishEndIndex = 24; }
+            else if (skillLevel === 16) { fishStartIndex = 15; fishEndIndex = 25; }
+            else if (skillLevel === 17) { fishStartIndex = 16; fishEndIndex = 26; }
+            else if (skillLevel === 18) { fishStartIndex = 17; fishEndIndex = 27; }
+            else if (skillLevel === 19) { fishStartIndex = 18; fishEndIndex = 28; }
+            else if (skillLevel === 20) { fishStartIndex = 19; fishEndIndex = 29; }
+            else if (skillLevel === 21) { fishStartIndex = 20; fishEndIndex = 30; }
+            else if (skillLevel === 22) { fishStartIndex = 21; fishEndIndex = 31; }
+            else if (skillLevel === 23) { fishStartIndex = 22; fishEndIndex = 32; }
+            else if (skillLevel === 24) { fishStartIndex = 23; fishEndIndex = 33; }
+            else if (skillLevel === 25) { fishStartIndex = 24; fishEndIndex = 34; }
+            else if (skillLevel === 26) { fishStartIndex = 25; fishEndIndex = 35; }
+            else if (skillLevel === 27) { fishStartIndex = 26; fishEndIndex = 36; }
+            else if (skillLevel === 28) { fishStartIndex = 27; fishEndIndex = 37; }
+            else if (skillLevel === 29) { fishStartIndex = 28; fishEndIndex = 38; }
+            else if (skillLevel === 30) { fishStartIndex = 29; fishEndIndex = 39; }
+            else if (skillLevel >= 31) { fishStartIndex = 30; fishEndIndex = 40; }
             
             const effectiveFishTypes = fishTypes.slice(fishStartIndex, fishEndIndex);
             
@@ -1838,6 +2073,29 @@ async function initializeServer() {
             ws.send(JSON.stringify({
               type: 'chat',
               text: inventoryDisplay
+            }));
+            return;
+          }
+
+          // 동료 확인
+          if (text === '동료') {
+            const companions = userCompanions.get(userId) || [];
+            if (companions.length === 0) {
+              ws.send(JSON.stringify({
+                type: 'chat',
+                text: `[${time}] 👥 ${nickname}님은 아직 동료가 없습니다.`
+              }));
+              return;
+            }
+            
+            let result = `[${time}] 👥 ${nickname}님의 동료 목록\n\n`;
+            companions.forEach((comp, index) => {
+              result += `${index+1}. ${comp.name} - ${comp.bonus}\n`;
+            });
+            
+            ws.send(JSON.stringify({
+              type: 'chat',
+              text: result
             }));
             return;
           }
