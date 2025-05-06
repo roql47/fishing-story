@@ -1434,6 +1434,8 @@
           } catch (e) {
             data = { type: 'chat', text: event.data };
           }
+          
+          // 메시지 타입에 따른 처리
           if (data.type === 'join') {
             addMessage(data, 'join');
           } else if (data.type === 'leave') {
@@ -1441,11 +1443,18 @@
           } else if (data.type === 'userInfo') {
             console.log('사용자 정보 수신:', data);
             
-            // currentUserData가 undefined일 수 있으므로 안전하게 처리
-            if (typeof currentUserData === 'undefined' || !Array.isArray(currentUserData)) {
+            // 사용자 정보가 비어있거나 잘못된 경우 처리
+            if (!data.userId) {
+              console.error('유효하지 않은 사용자 ID:', data);
+              return;
+            }
+            
+            // 사용자 정보 찾기 - currentUserData가 배열이 아닌 경우 초기화
+            if (!Array.isArray(currentUserData)) {
               currentUserData = [];
             }
             
+            // 사용자 찾기
             const userInfo = currentUserData.find(user => user.userId === data.userId);
             let clickedUserNickname;
             
@@ -1453,17 +1462,18 @@
               clickedUserNickname = userInfo.nickname;
               console.log(`사용자 정보 찾음: ${clickedUserNickname}`);
             } else {
-              // 사용자 정보를 찾을 수 없는 경우
-              clickedUserNickname = '알 수 없음';
-              console.log(`사용자 정보를 찾을 수 없음, userId: ${data.userId}`);
-              
+              // 사용자 정보를 찾을 수 없는 경우 현재 사용자인지 확인
               if (data.userId === currentUser.uuid) {
                 clickedUserNickname = currentUser.username || '본인';
-                console.log(`UUID로 본인 확인: ${clickedUserNickname}`);
+                console.log(`현재 사용자 정보: ${clickedUserNickname}`);
+              } else {
+                clickedUserNickname = '알 수 없음';
+                console.log(`사용자 정보를 찾을 수 없음, userId: ${data.userId}`);
               }
             }
             
-            console.log(`사용자 정보 표시: ${clickedUserNickname}, 스킬 레벨: ${data.skillLevel}`);
+            console.log(`사용자 정보 표시: ${clickedUserNickname}, 인벤토리: `, data.inventory);
+            console.log(`사용자 골드: ${data.gold}, 스킬 레벨: ${data.skillLevel}`);
             
             // 본인 정보인 경우 스킬 레벨 업데이트
             if (data.userId === currentUser.uuid && data.skillLevel !== undefined) {
@@ -1478,7 +1488,7 @@
               clickedUserNickname,
               data.inventory || {},
               data.gold || 0,
-              data.skillLevel || 0
+              data.skillLevel || 1
             );
           } else if (data.type === 'user_list') {
             // 기존 사용자 목록을 처리
@@ -1525,8 +1535,18 @@
         return;
       }
       
-      console.log(`${nickname}의 정보 요청 중... userId: ${userId}`);
+      if (!userId) {
+        console.error('유효하지 않은 사용자 ID:', userId);
+        alert('유효하지 않은 사용자 ID입니다.');
+        return;
+      }
       
+      console.log(`${nickname}(${userId})의 정보 요청 중...`);
+      
+      // 요청 전송 전 로딩 메시지 표시
+      showInventoryModal(nickname, {}, 0, 0, true);
+      
+      // 사용자 정보 요청 전송
       socket.send(JSON.stringify({
         type: 'requestUserInfo',
         targetUserId: userId
@@ -1534,16 +1554,26 @@
     }
     
     // 인벤토리 모달 표시 함수
-    function showInventoryModal(nickname, inventory, gold, skillLevel) {
+    function showInventoryModal(nickname, inventory, gold, skillLevel, isLoading = false) {
       modalTitle.textContent = `${nickname}님의 인벤토리`;
       
       // 인벤토리 내용 표시
       inventoryContent.innerHTML = '';
       
+      if (isLoading) {
+        const loadingMessage = document.createElement('div');
+        loadingMessage.textContent = '데이터 로딩 중...';
+        loadingMessage.style.textAlign = 'center';
+        loadingMessage.style.padding = '20px';
+        inventoryContent.appendChild(loadingMessage);
+        inventoryModal.style.display = 'block';
+        return;
+      }
+      
       // 골드 표시
       const goldItem = document.createElement('div');
       goldItem.className = 'inventory-item';
-      goldItem.innerHTML = `<span>💰 골드</span><span class="gold-amount">${gold} G</span>`;
+      goldItem.innerHTML = `<span>💰 골드</span><span class="gold-amount">${formatPrice(gold)} G</span>`;
       inventoryContent.appendChild(goldItem);
       
       // 낚시 스킬 레벨 표시
@@ -1563,42 +1593,91 @@
         console.log(`낚시 스킬 레벨이 ${skillLevel}로 업데이트되었습니다.`);
       }
       
+      // 인벤토리 내용 유효성 확인
+      if (!inventory || typeof inventory !== 'object') {
+        console.error('유효하지 않은 인벤토리 데이터:', inventory);
+        const errorMessage = document.createElement('div');
+        errorMessage.textContent = '인벤토리 데이터를 로드할 수 없습니다.';
+        errorMessage.style.textAlign = 'center';
+        errorMessage.style.padding = '10px';
+        errorMessage.style.color = '#f44336';
+        inventoryContent.appendChild(errorMessage);
+        inventoryModal.style.display = 'block';
+        return;
+      }
+      
       // 물고기 및 아이템 표시
       let hasItems = false;
       
-      // 낚싯대 표시
-      if (inventory['낚싯대']) {
-        hasItems = true;
-        const rodItem = document.createElement('div');
-        rodItem.className = 'inventory-item';
-        rodItem.innerHTML = `<span>🎣 낚싯대</span><span>${inventory['낚싯대']}개</span>`;
-        inventoryContent.appendChild(rodItem);
-      }
-      
-      // 물고기 표시 (고등어, 멸치, 문어, 쭈꾸미 순서로)
-      const fishTypes = ['고등어', '멸치', '문어', '쭈꾸미'];
-      const fishEmojis = {'고등어': '🐟', '멸치': '🐠', '문어': '🐙', '쭈꾸미': '🦑'};
-      
-      fishTypes.forEach(fishType => {
-        if (inventory[fishType]) {
+      // 낚시대 관련 아이템 표시
+      Object.keys(shopItems).forEach(itemName => {
+        if (shopItems[itemName].category === 'rods' && inventory[itemName]) {
           hasItems = true;
+          const rodItem = document.createElement('div');
+          rodItem.className = 'inventory-item';
+          rodItem.innerHTML = `<span>🎣 ${itemName}</span><span>${inventory[itemName]}개</span>`;
+          inventoryContent.appendChild(rodItem);
+        }
+      });
+      
+      // 악세사리 관련 아이템 표시
+      Object.keys(shopItems).forEach(itemName => {
+        if (shopItems[itemName].category === 'accessories' && inventory[itemName]) {
+          hasItems = true;
+          const accessoryItem = document.createElement('div');
+          accessoryItem.className = 'inventory-item';
+          accessoryItem.innerHTML = `<span>💍 ${itemName}</span><span>${inventory[itemName]}개</span>`;
+          inventoryContent.appendChild(accessoryItem);
+        }
+      });
+      
+      // 물고기 표시
+      const fishItems = Object.keys(inventory).filter(itemName => 
+        fishTypes.some(fish => fish.name === itemName)
+      ).sort((a, b) => {
+        const fishA = fishTypes.find(f => f.name === a);
+        const fishB = fishTypes.find(f => f.name === b);
+        return (fishA?.price || 0) - (fishB?.price || 0);
+      });
+      
+      if (fishItems.length > 0) {
+        hasItems = true;
+        const fishHeader = document.createElement('div');
+        fishHeader.className = 'inventory-category';
+        fishHeader.textContent = '🐟 물고기';
+        inventoryContent.appendChild(fishHeader);
+        
+        fishItems.forEach(fishName => {
+          const fish = fishTypes.find(f => f.name === fishName);
           const fishItem = document.createElement('div');
           fishItem.className = 'inventory-item';
-          fishItem.innerHTML = `<span>${fishEmojis[fishType] || '🐟'} ${fishType}</span><span>${inventory[fishType]}마리</span>`;
+          fishItem.innerHTML = `<span>🐟 ${fishName}</span><span>${inventory[fishName]}개 (${formatPrice(fish?.price || 0)}원)</span>`;
           inventoryContent.appendChild(fishItem);
-        }
-      });
+        });
+      }
       
-      // 기타 아이템들 표시
-      Object.keys(inventory).forEach(itemName => {
-        if (!fishTypes.includes(itemName) && itemName !== '낚싯대' && inventory[itemName]) {
-          hasItems = true;
-          const item = document.createElement('div');
-          item.className = 'inventory-item';
-          item.innerHTML = `<span>📦 ${itemName}</span><span>${inventory[itemName]}개</span>`;
-          inventoryContent.appendChild(item);
-        }
-      });
+      // 기타 아이템들 표시 (낚시대, 악세사리, 물고기가 아닌 것들)
+      const otherItems = Object.keys(inventory).filter(itemName => 
+        !fishItems.includes(itemName) && 
+        !Object.keys(shopItems).some(shopItem => shopItem === itemName)
+      );
+      
+      if (otherItems.length > 0) {
+        hasItems = true;
+        const otherHeader = document.createElement('div');
+        otherHeader.className = 'inventory-category';
+        otherHeader.textContent = '🧪 재료';
+        inventoryContent.appendChild(otherHeader);
+        
+        otherItems.forEach(itemName => {
+          if (inventory[itemName] > 0) {
+            const item = document.createElement('div');
+            item.className = 'inventory-item';
+            item.innerHTML = `<span>📦 ${itemName}</span><span>${inventory[itemName]}개</span>`;
+            inventoryContent.appendChild(item);
+          }
+        });
+      }
       
       // 아이템이 없는 경우 메시지 표시
       if (!hasItems) {
@@ -1686,7 +1765,9 @@
       const fishInfoContent = document.querySelector('#currentFishInfo');
       
       if (!fishInfoContent) {
-        console.error("currentFishInfo 요소를 찾을 수 없습니다.");
+        console.error("currentFishInfo 요소를 찾을 수 없습니다. DOM이 완전히 로드되지 않았을 수 있습니다.");
+        // DOM이 로드되면 다시 시도
+        setTimeout(updateFishInfoDisplay, 500);
         return;
       }
       
@@ -1695,8 +1776,8 @@
       console.log("현재 낚시 스킬 레벨:", skillLevel);
       
       // 물고기 데이터가 없는 경우 메시지 표시
-      if (!fishTypes || fishTypes.length === 0) {
-        console.error("물고기 정보가 없습니다.");
+      if (!fishTypes || !Array.isArray(fishTypes) || fishTypes.length === 0) {
+        console.error("물고기 정보가 없거나 유효하지 않습니다:", fishTypes);
         fishInfoContent.innerHTML = '<div class="skill-info">물고기 정보를 불러오는 중 오류가 발생했습니다.</div>';
         return;
       }
@@ -1714,7 +1795,12 @@
         const effectiveFishTypes = fishTypes.slice(start, end);
         
         // 희귀 물고기 (스타피쉬) 추가
-        const rareFish = fishTypes[fishTypes.length - 1] || { name: '스타피쉬', price: 100, material: '별조각' };
+        let rareFish;
+        if (fishTypes.length > 0) {
+          rareFish = fishTypes[fishTypes.length - 1];
+        } else {
+          rareFish = { name: '스타피쉬', price: 100, material: '별조각' };
+        }
         
         // HTML 초기화
         let htmlContent = '';
@@ -1732,30 +1818,34 @@
         htmlContent += `<div class="fish-category">🐟 낚을 수 있는 물고기</div>`;
         
         // 일반 물고기 정보 추가
-        for (let i = 0; i < effectiveFishTypes.length; i++) {
-          const fish = effectiveFishTypes[i];
-          const probability = i < catchProbabilities.length ? catchProbabilities[i] : 0;
-          
-          // 확률에 따른 바 너비 계산
-          const fillWidth = Math.min(100, (probability / 40) * 100);
-          
-          htmlContent += `
-            <div class="fish-card">
-              <div class="fish-icon">🐟</div>
-              <div class="fish-details">
-                <div class="fish-name">${fish.name}</div>
-                <div class="fish-stats">
-                  <div class="fish-probability">
-                    확률: ${probability}%
-                    <div class="probability-bar">
-                      <div class="probability-fill" style="width: ${fillWidth}%"></div>
+        if (effectiveFishTypes.length > 0) {
+          for (let i = 0; i < effectiveFishTypes.length; i++) {
+            const fish = effectiveFishTypes[i];
+            const probability = i < catchProbabilities.length ? catchProbabilities[i] : 0;
+            
+            // 확률에 따른 바 너비 계산
+            const fillWidth = Math.min(100, (probability / 40) * 100);
+            
+            htmlContent += `
+              <div class="fish-card">
+                <div class="fish-icon">🐟</div>
+                <div class="fish-details">
+                  <div class="fish-name">${fish.name}</div>
+                  <div class="fish-stats">
+                    <div class="fish-probability">
+                      확률: ${probability}%
+                      <div class="probability-bar">
+                        <div class="probability-fill" style="width: ${fillWidth}%"></div>
+                      </div>
                     </div>
+                    <div class="fish-price">${formatPrice(fish.price)}원</div>
                   </div>
-                  <div class="fish-price">${formatPrice(fish.price)}원</div>
                 </div>
               </div>
-            </div>
-          `;
+            `;
+          }
+        } else {
+          htmlContent += `<div class="fish-card">물고기 정보가 없습니다.</div>`;
         }
         
         // 희귀 물고기 섹션
@@ -1791,84 +1881,96 @@
     // 물고기 데이터 로드 함수
     function loadFishData() {
       console.log("물고기 데이터 로드 시도...");
+      
       // 서버에서 물고기 데이터 가져오기
       fetch('/api/fish-data')
         .then(response => {
           console.log("서버 응답:", response.status);
+          if (!response.ok) {
+            throw new Error(`서버 오류: ${response.status}`);
+          }
           return response.json();
         })
         .then(data => {
           console.log("물고기 데이터 수신:", data);
-          if (data.success) {
+          if (data.success && data.fishTypes && Array.isArray(data.fishTypes) && data.fishTypes.length > 0) {
             fishTypes = data.fishTypes;
-            if (data.catchProbabilities) {
+            if (data.catchProbabilities && Array.isArray(data.catchProbabilities)) {
               catchProbabilities = data.catchProbabilities;
             }
             
-            // 낚시 스킬 레벨이 설정되지 않았다면 기본값 설정 (새로운 코드)
+            // 낚시 스킬 레벨이 설정되지 않았다면 기본값 설정
             if (!localStorage.getItem('fishingSkillLevel')) {
               localStorage.setItem('fishingSkillLevel', '1');
             }
             
+            console.log("물고기 데이터 로드 성공:", fishTypes.length, "개의 물고기 정보 로드됨");
             updateFishInfoDisplay();
           } else {
-            console.error("물고기 데이터 로드 실패:", data.error);
+            console.error("물고기 데이터 로드 실패:", data.error || "유효하지 않은 데이터");
+            useDefaultFishData();
           }
         })
         .catch(error => {
           console.error('물고기 데이터 로드 오류:', error);
-          // 기본 물고기 정보 설정 (오류 시 기본값)
-          fishTypes = [
-            { name: '타코문어', price: 300, material: "문어다리" },
-            { name: '풀고등어', price: 700, material: "고등어비늘" },
-            { name: '경단붕어', price: 1500, material: "당고" },
-            { name: '버터오징어', price: 8000, material: "버터조각" },
-            { name: '간장새우', price: 15000, material: "간장종지" },
-            { name: '물수수', price: 30000, material: "옥수수콘" },
-            { name: '정어리파이', price: 40000, material: "버터" },
-            { name: '얼음상어', price: 50000, material: "얼음조각" },
-            { name: '스퀄스퀴드', price: 60000, material: "오징어먹물" },
-            { name: '백년송거북', price: 100000, material: "백년송" },
-            { name: '고스피쉬', price: 150000, material: "후춧가루" },
-            { name: '유령치', price: 230000, material: "석화" },
-            { name: '바이트독', price: 470000, material: "핫소스" },
-            { name: '호박고래', price: 700000, material: "펌킨조각" },
-            { name: '바이킹조개', price: 1250000, material: "꽃술" },
-            { name: '천사해파리', price: 2440000, material: "프레첼" },
-            { name: '악마복어', price: 4100000, material: "베놈" },
-            { name: '칠성장어', price: 6600000, material: "장어꼬리" },
-            { name: '닥터블랙', price: 9320000, material: "아인스바인" },
-            { name: '해룡', price: 14400000, material: "헤븐즈서펀트" },
-            { name: '메카핫킹크랩', price: 27950000, material: "집게다리" },
-            { name: '램프리', price: 46400000, material: "이즈니버터" },
-            { name: '마지막잎새', price: 76500000, material: "라벤더오일" },
-            { name: '아이스브리더', price: 131200000, material: "샤베트" },
-            { name: '해신', price: 288000000, material: "마법의정수" },
-            { name: '핑키피쉬', price: 418600000, material: "휘핑크림" },
-            { name: '콘토퍼스', price: 731560000, material: "와플리머신" },
-            { name: '딥원', price: 1026400000, material: "베르쥬스" },
-            { name: '큐틀루', price: 1477500000, material: "안쵸비" },
-            { name: '꽃술나리', price: 2092000000, material: "핑크멜로우" },
-            { name: '다무스', price: 2633200000, material: "와일드갈릭" },
-            { name: '수호자', price: 3427900000, material: "그루누아" },
-            { name: '태양가사리', price: 6483100000, material: "시더플랭크" },
-            { name: '빅파더펭귄', price: 9887600000, material: "세비체" },
-            { name: '크레인터틀', price: 15124000000, material: "타파스" },
-            { name: 'CSP-765 조립식생선', price: 19580000000, material: "트러플리소토" },
-            { name: '데드케이지', price: 25420000000, material: "캐비아소스" },
-            { name: '다크암모나이트', price: 31780000000, material: "푸아그라에스푸마" },
-            { name: '조가비여인', price: 38240000000, material: "샴페인젤리" },
-            { name: '10개통고래', price: 45360000000, material: "금박마카롱" },
-            { name: '스타피쉬', price: 100, material: "별조각" }
-          ];
-          
-          // 낚시 스킬 레벨이 설정되지 않았다면 기본값 설정 (새로운 코드)
-          if (!localStorage.getItem('fishingSkillLevel')) {
-            localStorage.setItem('fishingSkillLevel', '1');
-          }
-          
-          updateFishInfoDisplay();
+          useDefaultFishData();
         });
+    }
+    
+    // 기본 물고기 데이터 사용 함수
+    function useDefaultFishData() {
+      console.log("기본 물고기 데이터 사용");
+      // 기본 물고기 정보 설정 (오류 시 기본값)
+      fishTypes = [
+        { name: '타코문어', price: 300, material: "문어다리" },
+        { name: '풀고등어', price: 700, material: "고등어비늘" },
+        { name: '경단붕어', price: 1500, material: "당고" },
+        { name: '버터오징어', price: 8000, material: "버터조각" },
+        { name: '간장새우', price: 15000, material: "간장종지" },
+        { name: '물수수', price: 30000, material: "옥수수콘" },
+        { name: '정어리파이', price: 40000, material: "버터" },
+        { name: '얼음상어', price: 50000, material: "얼음조각" },
+        { name: '스퀄스퀴드', price: 60000, material: "오징어먹물" },
+        { name: '백년송거북', price: 100000, material: "백년송" },
+        { name: '고스피쉬', price: 150000, material: "후춧가루" },
+        { name: '유령치', price: 230000, material: "석화" },
+        { name: '바이트독', price: 470000, material: "핫소스" },
+        { name: '호박고래', price: 700000, material: "펌킨조각" },
+        { name: '바이킹조개', price: 1250000, material: "꽃술" },
+        { name: '천사해파리', price: 2440000, material: "프레첼" },
+        { name: '악마복어', price: 4100000, material: "베놈" },
+        { name: '칠성장어', price: 6600000, material: "장어꼬리" },
+        { name: '닥터블랙', price: 9320000, material: "아인스바인" },
+        { name: '해룡', price: 14400000, material: "헤븐즈서펀트" },
+        { name: '메카핫킹크랩', price: 27950000, material: "집게다리" },
+        { name: '램프리', price: 46400000, material: "이즈니버터" },
+        { name: '마지막잎새', price: 76500000, material: "라벤더오일" },
+        { name: '아이스브리더', price: 131200000, material: "샤베트" },
+        { name: '해신', price: 288000000, material: "마법의정수" },
+        { name: '핑키피쉬', price: 418600000, material: "휘핑크림" },
+        { name: '콘토퍼스', price: 731560000, material: "와플리머신" },
+        { name: '딥원', price: 1026400000, material: "베르쥬스" },
+        { name: '큐틀루', price: 1477500000, material: "안쵸비" },
+        { name: '꽃술나리', price: 2092000000, material: "핑크멜로우" },
+        { name: '다무스', price: 2633200000, material: "와일드갈릭" },
+        { name: '수호자', price: 3427900000, material: "그루누아" },
+        { name: '태양가사리', price: 6483100000, material: "시더플랭크" },
+        { name: '빅파더펭귄', price: 9887600000, material: "세비체" },
+        { name: '크레인터틀', price: 15124000000, material: "타파스" },
+        { name: 'CSP-765 조립식생선', price: 19580000000, material: "트러플리소토" },
+        { name: '데드케이지', price: 25420000000, material: "캐비아소스" },
+        { name: '다크암모나이트', price: 31780000000, material: "푸아그라에스푸마" },
+        { name: '조가비여인', price: 38240000000, material: "샴페인젤리" },
+        { name: '10개통고래', price: 45360000000, material: "금박마카롱" },
+        { name: '스타피쉬', price: 100, material: "별조각" }
+      ];
+      
+      // 낚시 스킬 레벨이 설정되지 않았다면 기본값 설정
+      if (!localStorage.getItem('fishingSkillLevel')) {
+        localStorage.setItem('fishingSkillLevel', '1');
+      }
+      
+      updateFishInfoDisplay();
     }
     
     // 페이지 로드 시 물고기 데이터 로드
@@ -1907,28 +2009,6 @@
       if (initialTab) {
         initialTab.classList.add('active');
         filterShopItems('rods');
-      }
-      
-      // 소켓 메시지 처리에 낚시 스킬 레벨 업데이트 로직 추가
-      const originalOnmessage = socket ? socket.onmessage : null;
-      if (socket) {
-        socket.onmessage = function(event) {
-          // 기존 이벤트 핸들러 호출
-          if (originalOnmessage) {
-            originalOnmessage.call(socket, event);
-          }
-          
-          // 사용자 정보 메시지에서 낚시 스킬 레벨 추출
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'userInfo' && data.skillLevel !== undefined) {
-              localStorage.setItem('fishingSkillLevel', data.skillLevel);
-              updateFishInfoDisplay();
-            }
-          } catch (e) {
-            console.error('메시지 처리 오류:', e);
-          }
-        };
       }
     });
     
