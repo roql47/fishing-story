@@ -848,8 +848,7 @@
     const joinBtn = document.getElementById('joinButton');
     const userList = document.getElementById('userList');
     const userCountElement = document.getElementById('userCount');
-    const buyFishingRodBtn = document.getElementById('buyFishingRod');
-    const tabs = document.querySelectorAll('.tab');
+    const tabs = document.querySelectorAll('.tab[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
 
     let socket;
@@ -861,10 +860,43 @@
       isGuest: true
     };
 
+    // 탭 전환 기능 추가
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        // 모든 탭에서 active 클래스 제거
+        tabs.forEach(t => t.classList.remove('active'));
+        
+        // 현재 탭에 active 클래스 추가
+        this.classList.add('active');
+        
+        // 모든 탭 컨텐츠 숨김
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // 현재 탭에 해당하는 컨텐츠 표시
+        const tabId = this.getAttribute('data-tab');
+        document.getElementById(tabId + 'Tab').classList.add('active');
+        
+        // 상점 탭인 경우 초기 아이템 로드
+        if (tabId === 'shop') {
+          const activeCategory = document.querySelector('.shop-category.active');
+          if (activeCategory) {
+            const category = activeCategory.getAttribute('data-category');
+            filterShopItems(category);
+          } else {
+            // 기본 탭(낚시대) 활성화
+            const defaultTab = document.querySelector('.shop-category[data-category="rods"]');
+            if (defaultTab) {
+              defaultTab.classList.add('active');
+              filterShopItems('rods');
+            }
+          }
+        }
+      });
+    });
+
     const inventoryModal = document.getElementById('inventoryModal');
     const modalTitle = document.getElementById('modalTitle');
     const inventoryContent = document.getElementById('inventoryContent');
-    let currentUserData = [];
 
     // 로컬스토리지에서 사용자 정보 불러오기
     function loadUserFromStorage() {
@@ -1081,30 +1113,31 @@
     // 탭 전환 기능
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
-        // 활성 탭 변경
+        // 모든 탭에서 active 클래스 제거
         tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
         
-        // 활성 콘텐츠 변경
-        const tabId = tab.getAttribute('data-tab');
-        tabContents.forEach(content => {
-          content.classList.remove('active');
-        });
+        // 현재 탭에 active 클래스 추가
+        this.classList.add('active');
+        
+        // 모든 탭 컨텐츠 숨김
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // 현재 탭에 해당하는 컨텐츠 표시
+        const tabId = this.getAttribute('data-tab');
         document.getElementById(tabId + 'Tab').classList.add('active');
         
-        // 상점 탭이 활성화되면 상품 목록 표시
+        // 상점 탭인 경우 초기 아이템 로드
         if (tabId === 'shop') {
-          // 현재 활성화된 카테고리 확인
           const activeCategory = document.querySelector('.shop-category.active');
           if (activeCategory) {
-            const categoryId = activeCategory.getAttribute('data-category');
-            loadShopItems(categoryId);
+            const category = activeCategory.getAttribute('data-category');
+            filterShopItems(category);
           } else {
-            // 기본 카테고리 설정 (낚시대)
-            const rodCategory = document.querySelector('.shop-category[data-category="rods"]');
-            if (rodCategory) {
-              rodCategory.classList.add('active');
-              loadShopItems('rods');
+            // 기본 탭(낚시대) 활성화
+            const defaultTab = document.querySelector('.shop-category[data-category="rods"]');
+            if (defaultTab) {
+              defaultTab.classList.add('active');
+              filterShopItems('rods');
             }
           }
         }
@@ -1759,7 +1792,29 @@
         });
       }
       
-      // 초기 상태는 펼쳐진 상태로 (기본값)
+      // 상점 탭 클릭 이벤트 처리 (추가)
+      const shopTabs = document.querySelectorAll('.shop-category');
+      
+      shopTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          // 모든 탭에서 active 클래스 제거
+          shopTabs.forEach(t => t.classList.remove('active'));
+          
+          // 현재 탭에 active 클래스 추가
+          this.classList.add('active');
+          
+          // 카테고리에 따라 상점 아이템 필터링
+          const category = this.getAttribute('data-category');
+          filterShopItems(category);
+        });
+      });
+      
+      // 초기 탭 활성화 (낚시대)
+      const initialTab = document.querySelector('.shop-category[data-category="rods"]');
+      if (initialTab) {
+        initialTab.classList.add('active');
+        filterShopItems('rods');
+      }
       
       // 소켓 메시지 처리에 낚시 스킬 레벨 업데이트 로직 추가
       const originalOnmessage = socket ? socket.onmessage : null;
@@ -1783,6 +1838,49 @@
         };
       }
     });
+    
+    // 상점 아이템 필터링 함수 (추가)
+    function filterShopItems(category) {
+      const container = document.getElementById('shop-items-container');
+      if (!container) return;
+      
+      container.innerHTML = '';
+      
+      Object.entries(shopItems).forEach(([itemName, details]) => {
+        // 해당 카테고리만 표시
+        if (details.category !== category) return;
+        
+        // 아이템 요소 생성
+        const itemElement = document.createElement('div');
+        itemElement.className = 'shop-item';
+        
+        // 가격 표시 또는 재료 요구사항 표시
+        let priceDisplay = '';
+        if (details.price > 0) {
+          priceDisplay = `${formatPrice(details.price)}원`;
+        } else if (details.materialsRequired) {
+          const materials = Object.entries(details.materialsRequired)
+            .map(([materialName, amount]) => `${materialName} ${amount}개`)
+            .join(', ');
+          priceDisplay = `필요 재료: ${materials}`;
+        }
+        
+        // HTML 구성
+        itemElement.innerHTML = `
+          <div class="shop-item-info">
+            <div class="shop-item-name">${itemName}</div>
+            <div class="shop-item-price">${priceDisplay}</div>
+            <div class="shop-item-desc">${details.description || ''}</div>
+          </div>
+          <button class="buy-button" data-item="${itemName}" data-price="${details.price || 0}">구매하기</button>
+        `;
+        
+        container.appendChild(itemElement);
+      });
+      
+      // 구매 버튼 이벤트 리스너 설정
+      setupBuyButtons();
+    }
 
     // 채팅 연결 함수
     function connectToChat() {
