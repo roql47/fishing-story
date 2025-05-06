@@ -852,6 +852,23 @@
       justify-content: space-between;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
+    
+    /* 위젯 접기/펼치기 관련 스타일 */
+    .fishing-info-widget.collapsed .fishing-info-content {
+      display: none;
+    }
+    
+    .fishing-info-header {
+      cursor: pointer;
+    }
+    
+    .fishing-info-toggle {
+      transition: transform 0.3s;
+    }
+    
+    .fishing-info-widget.collapsed .fishing-info-toggle {
+      transform: rotate(180deg);
+    }
   </style>
 </head>
 <body>
@@ -2337,24 +2354,24 @@
     document.addEventListener('DOMContentLoaded', function() {
       loadFishData();
       
-      // 낚시 정보 헤더 클릭 이벤트 처리 (토글)
-      const fishingInfoHeader = document.querySelector('.fishing-info-header');
-      const fishingInfoWidget = document.querySelector('.fishing-info-widget');
+      // 모든 fishing-info-header에 대한 클릭 이벤트 설정
+      const infoHeaders = document.querySelectorAll('.fishing-info-header');
       
-      if (fishingInfoHeader) {
-        fishingInfoHeader.addEventListener('click', function() {
-          fishingInfoWidget.classList.toggle('collapsed');
-        });
-      }
-      
-      // 동료 현황 위젯 토글 기능 추가
-      const allInfoHeaders = document.querySelectorAll('.fishing-info-header');
-      
-      allInfoHeaders.forEach(header => {
+      infoHeaders.forEach(header => {
         header.addEventListener('click', function() {
           const parentWidget = this.closest('.fishing-info-widget');
           if (parentWidget) {
             parentWidget.classList.toggle('collapsed');
+            
+            // 토글 아이콘 방향 변경 (옵션)
+            const toggleIcon = this.querySelector('.fishing-info-toggle');
+            if (toggleIcon) {
+              if (parentWidget.classList.contains('collapsed')) {
+                toggleIcon.textContent = '▲';
+              } else {
+                toggleIcon.textContent = '▼';
+              }
+            }
           }
         });
       });
