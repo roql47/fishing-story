@@ -854,6 +854,7 @@
     let socket;
     let currentUsers = new Set();
     let isConnected = false;
+    let currentUserData = []; // 사용자 목록 데이터 초기화
     let currentUser = {
       uuid: null,
       username: null,
@@ -1324,6 +1325,8 @@
       const userListElement = document.getElementById('userList');
       userListElement.innerHTML = '';
       
+      console.log('updateUserList 호출됨, 사용자 수:', currentUserData.length);
+      
       currentUserData.forEach(user => {
         const listItem = document.createElement('li');
         listItem.className = 'user-item';
@@ -1331,6 +1334,7 @@
         
         // 닉네임 클릭 이벤트 추가
         listItem.addEventListener('click', () => {
+          console.log('사용자 클릭됨:', user.nickname, 'userId:', user.userId);
           if (user.userId) {
             requestUserInventory(user.userId, user.nickname);
           } else {
@@ -1389,7 +1393,7 @@
           // 로그인 사용자 정보 전송
           socket.send(JSON.stringify({
             type: 'join',
-            nickname: currentUser.username,
+            nickname: currentUser.username || nickname,
             room: room,
             uuid: currentUser.uuid  // UUID 전송
           }));
@@ -1400,13 +1404,20 @@
           isConnected = true;
           
           // 연결 직후 본인의 사용자 정보 요청 (낚시 스킬 레벨 업데이트 위해)
-          setTimeout(() => {
-            socket.send(JSON.stringify({
-              type: 'requestUserInfo',
-              targetUserId: currentUser.uuid
-            }));
-            console.log("본인 정보 요청 전송됨 (낚시 스킬 레벨 업데이트 용)");
-          }, 1000);
+          // 로그인한 사용자인 경우에만 본인 정보 요청
+          if (currentUser.uuid) {
+            setTimeout(() => {
+              console.log("본인 정보 요청 전송 (UUID:", currentUser.uuid, ")");
+              socket.send(JSON.stringify({
+                type: 'requestUserInfo',
+                targetUserId: currentUser.uuid
+              }));
+            }, 2000);
+          } else {
+            console.log("게스트로 접속 중이므로 본인 정보 요청 생략");
+            // 기본 낚시 정보 업데이트
+            updateFishInfoDisplay();
+          }
         });
 
         socket.addEventListener('error', function(event) {
@@ -1428,18 +1439,31 @@
           } else if (data.type === 'leave') {
             addMessage(data, 'leave');
           } else if (data.type === 'userInfo') {
-            // 사용자 본인의 정보인 경우 낚시 스킬 레벨을 로컬 스토리지에 저장
-            const currentUserObj = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            console.log('사용자 정보 수신:', data);
             
             // currentUserData가 undefined일 수 있으므로 안전하게 처리
-            if (typeof currentUserData === 'undefined') {
+            if (typeof currentUserData === 'undefined' || !Array.isArray(currentUserData)) {
               currentUserData = [];
             }
             
             const userInfo = currentUserData.find(user => user.userId === data.userId);
-            const clickedUserNickname = userInfo ? userInfo.nickname : '알 수 없음';
+            let clickedUserNickname;
             
-            console.log("사용자 정보 수신:", data.userId, "닉네임:", clickedUserNickname);
+            if (userInfo) {
+              clickedUserNickname = userInfo.nickname;
+              console.log(`사용자 정보 찾음: ${clickedUserNickname}`);
+            } else {
+              // 사용자 정보를 찾을 수 없는 경우
+              clickedUserNickname = '알 수 없음';
+              console.log(`사용자 정보를 찾을 수 없음, userId: ${data.userId}`);
+              
+              if (data.userId === currentUser.uuid) {
+                clickedUserNickname = currentUser.username || '본인';
+                console.log(`UUID로 본인 확인: ${clickedUserNickname}`);
+              }
+            }
+            
+            console.log(`사용자 정보 표시: ${clickedUserNickname}, 스킬 레벨: ${data.skillLevel}`);
             
             // 본인 정보인 경우 스킬 레벨 업데이트
             if (data.userId === currentUser.uuid && data.skillLevel !== undefined) {
@@ -1459,10 +1483,12 @@
           } else if (data.type === 'user_list') {
             // 기존 사용자 목록을 처리
             currentUserData = data.users;
+            console.log('사용자 목록 업데이트:', currentUserData);
             updateUserList();
           } else if (data.type === 'full_user_list') {
             // 전체 사용자 목록으로 업데이트
             currentUserData = data.users;
+            console.log('전체 사용자 목록 업데이트:', currentUserData);
             updateUserList();
           } else {
             addMessage(data);
@@ -1498,6 +1524,8 @@
         alert('서버에 연결되어 있지 않습니다.');
         return;
       }
+      
+      console.log(`${nickname}의 정보 요청 중... userId: ${userId}`);
       
       socket.send(JSON.stringify({
         type: 'requestUserInfo',
@@ -1599,7 +1627,19 @@
     };
 
     // 물고기 정보 관련 변수 선언
-    let fishTypes = [];
+    let fishTypes = [
+      { name: '타코문어', price: 300, material: "문어다리" },
+      { name: '풀고등어', price: 700, material: "고등어비늘" },
+      { name: '경단붕어', price: 1500, material: "당고" },
+      { name: '버터오징어', price: 8000, material: "버터조각" },
+      { name: '간장새우', price: 15000, material: "간장종지" },
+      { name: '물수수', price: 30000, material: "옥수수콘" },
+      { name: '정어리파이', price: 40000, material: "버터" },
+      { name: '얼음상어', price: 50000, material: "얼음조각" },
+      { name: '스퀄스퀴드', price: 60000, material: "오징어먹물" },
+      { name: '백년송거북', price: 100000, material: "백년송" },
+      { name: '스타피쉬', price: 100, material: "별조각" }
+    ];
     let catchProbabilities = [38.5, 25, 15, 8, 5, 3, 2, 1, 0.7, 0.3, 1];
     
     // 스킬 레벨에 따른 낚을 수 있는 물고기 범위 계산 함수
@@ -1643,7 +1683,7 @@
     // 물고기 확률 정보 업데이트 함수
     function updateFishInfoDisplay() {
       // 메인 화면의 currentFishInfo 요소 찾기
-      const fishInfoContent = document.querySelector('.fishing-info-content').querySelector('#currentFishInfo');
+      const fishInfoContent = document.querySelector('#currentFishInfo');
       
       if (!fishInfoContent) {
         console.error("currentFishInfo 요소를 찾을 수 없습니다.");
@@ -1656,84 +1696,96 @@
       
       // 물고기 데이터가 없는 경우 메시지 표시
       if (!fishTypes || fishTypes.length === 0) {
+        console.error("물고기 정보가 없습니다.");
         fishInfoContent.innerHTML = '<div class="skill-info">물고기 정보를 불러오는 중 오류가 발생했습니다.</div>';
         return;
       }
       
-      // 레벨에 따른 물고기 범위 계산
-      const range = getFishRangeBySkill(skillLevel);
-      console.log("물고기 범위:", range);
-      const effectiveFishTypes = fishTypes.slice(range.start, range.end);
+      console.log("물고기 정보 업데이트 시작, 물고기 종류:", fishTypes.length);
       
-      // 희귀 물고기 (스타피쉬) 추가
-      const rareFish = fishTypes[fishTypes.length - 1];
-      
-      // HTML 초기화
-      let htmlContent = '';
-      
-      // 낚시 스킬 정보 추가
-      htmlContent += `
-        <div class="skill-info">
-          <div class="skill-level">낚시 스킬 레벨: ${skillLevel}</div>
-          <div class="skill-tip">더 좋은 낚시대로 레벨업!</div>
-        </div>
-      `;
-      
-      // 일반 물고기 섹션
-      htmlContent += `<div class="fish-info-title">🎣 낚시 확률 정보</div>`;
-      htmlContent += `<div class="fish-category">🐟 낚을 수 있는 물고기</div>`;
-      
-      // 일반 물고기 정보 추가
-      for (let i = 0; i < effectiveFishTypes.length; i++) {
-        const fish = effectiveFishTypes[i];
-        const probability = i < catchProbabilities.length ? catchProbabilities[i] : 0;
+      try {
+        // 레벨에 따른 물고기 범위 계산
+        const range = getFishRangeBySkill(skillLevel);
+        console.log("물고기 범위:", range);
         
-        // 확률에 따른 바 너비 계산
-        const fillWidth = Math.min(100, (probability / 40) * 100);
+        // 범위가 배열 범위를 넘어가지 않도록 보정
+        const start = Math.min(range.start, fishTypes.length - 1);
+        const end = Math.min(range.end, fishTypes.length);
+        const effectiveFishTypes = fishTypes.slice(start, end);
         
+        // 희귀 물고기 (스타피쉬) 추가
+        const rareFish = fishTypes[fishTypes.length - 1] || { name: '스타피쉬', price: 100, material: '별조각' };
+        
+        // HTML 초기화
+        let htmlContent = '';
+        
+        // 낚시 스킬 정보 추가
         htmlContent += `
-          <div class="fish-card">
-            <div class="fish-icon">🐟</div>
+          <div class="skill-info">
+            <div class="skill-level">낚시 스킬 레벨: ${skillLevel}</div>
+            <div class="skill-tip">더 좋은 낚시대로 레벨업!</div>
+          </div>
+        `;
+        
+        // 일반 물고기 섹션
+        htmlContent += `<div class="fish-info-title">🎣 낚시 확률 정보</div>`;
+        htmlContent += `<div class="fish-category">🐟 낚을 수 있는 물고기</div>`;
+        
+        // 일반 물고기 정보 추가
+        for (let i = 0; i < effectiveFishTypes.length; i++) {
+          const fish = effectiveFishTypes[i];
+          const probability = i < catchProbabilities.length ? catchProbabilities[i] : 0;
+          
+          // 확률에 따른 바 너비 계산
+          const fillWidth = Math.min(100, (probability / 40) * 100);
+          
+          htmlContent += `
+            <div class="fish-card">
+              <div class="fish-icon">🐟</div>
+              <div class="fish-details">
+                <div class="fish-name">${fish.name}</div>
+                <div class="fish-stats">
+                  <div class="fish-probability">
+                    확률: ${probability}%
+                    <div class="probability-bar">
+                      <div class="probability-fill" style="width: ${fillWidth}%"></div>
+                    </div>
+                  </div>
+                  <div class="fish-price">${formatPrice(fish.price)}원</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        
+        // 희귀 물고기 섹션
+        htmlContent += `<div class="fish-category">✨ 희귀 물고기</div>`;
+        
+        // 희귀 물고기 정보 추가
+        htmlContent += `
+          <div class="fish-card rare-fish">
+            <div class="fish-icon">✨</div>
             <div class="fish-details">
-              <div class="fish-name">${fish.name}</div>
+              <div class="fish-name">${rareFish.name}</div>
               <div class="fish-stats">
                 <div class="fish-probability">
-                  확률: ${probability}%
+                  확률: 0.5%
                   <div class="probability-bar">
-                    <div class="probability-fill" style="width: ${fillWidth}%"></div>
+                    <div class="probability-fill" style="width: 1.25%"></div>
                   </div>
                 </div>
-                <div class="fish-price">${formatPrice(fish.price)}원</div>
+                <div class="fish-price">${formatPrice(rareFish.price)}원</div>
               </div>
             </div>
           </div>
         `;
+        
+        fishInfoContent.innerHTML = htmlContent;
+        console.log("물고기 정보 업데이트 완료!");
+      } catch (error) {
+        console.error("물고기 정보 업데이트 중 오류 발생:", error);
+        fishInfoContent.innerHTML = '<div class="skill-info">물고기 정보 표시 중 오류가 발생했습니다.</div>';
       }
-      
-      // 희귀 물고기 섹션
-      htmlContent += `<div class="fish-category">✨ 희귀 물고기</div>`;
-      
-      // 희귀 물고기 정보 추가
-      htmlContent += `
-        <div class="fish-card rare-fish">
-          <div class="fish-icon">✨</div>
-          <div class="fish-details">
-            <div class="fish-name">${rareFish.name}</div>
-            <div class="fish-stats">
-              <div class="fish-probability">
-                확률: 0.5%
-                <div class="probability-bar">
-                  <div class="probability-fill" style="width: 1.25%"></div>
-                </div>
-              </div>
-              <div class="fish-price">${formatPrice(rareFish.price)}원</div>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      fishInfoContent.innerHTML = htmlContent;
-      console.log("물고기 정보 업데이트 완료!");
     }
     
     // 물고기 데이터 로드 함수
