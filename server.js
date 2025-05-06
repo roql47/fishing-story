@@ -162,14 +162,18 @@ app.post('/api/register', async (req, res) => {
     // 새 사용자를 위한 인벤토리 및 골드 초기화
     const inventory = new Inventory({ userId: uuid, items: {} });
     const gold = new Gold({ userId: uuid, amount: 0 });
+    // 낚시 스킬 레벨 초기화 (추가)
+    const fishingSkill = new FishingSkill({ userId: uuid, level: 1 });
     
     await inventory.save();
     await gold.save();
+    await fishingSkill.save(); // 낚시 스킬 레벨 저장 (추가)
     
     // 메모리에도 추가
     users.set(username, { password, uuid });
     inventories.set(uuid, {});
     userGold.set(uuid, 0);
+    fishingSkills.set(uuid, 1); // 메모리에 낚시 스킬 레벨 설정 (추가)
     
     return res.status(201).json({ success: true, message: '회원가입이 완료되었습니다.', uuid });
   } catch (e) {
