@@ -5,7 +5,7 @@ const path = require('path');
 const express = require('express');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const { User, Inventory, Gold, ChatLog, isConnected, connectToMongoDB } = require('./models/database');
+const { User, Inventory, Gold, FishingSkill, ChatLog, isConnected, connectToMongoDB } = require('./models/database');
 const userRouter = require('./routes/user');
 const adminRouter = require('./routes/admin');
 const fishingRouter = require('./routes/fishing');
@@ -269,6 +269,17 @@ async function saveDatabase() {
           { userId, amount },
           { upsert: true }
         ).catch(e => console.error(`골드 저장 에러 (${userId}):`, e))
+      );
+    }
+    
+    // 낚시 스킬 레벨 저장
+    for (const [userId, level] of fishingSkills) {
+      savePromises.push(
+        FishingSkill.findOneAndUpdate(
+          { userId },
+          { userId, level },
+          { upsert: true }
+        ).catch(e => console.error(`낚시 스킬 레벨 저장 에러 (${userId}):`, e))
       );
     }
     
@@ -1079,7 +1090,6 @@ async function initializeServer() {
               // MongoDB에 낚시 스킬 레벨 직접 저장 (새 코드)
               (async () => {
                 try {
-                  const { FishingSkill } = require('./models/database');
                   await FishingSkill.findOneAndUpdate(
                     { userId },
                     { userId, level: currentSkill + 1 },
